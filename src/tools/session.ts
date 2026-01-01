@@ -1,0 +1,67 @@
+import { z } from 'zod';
+import { sessionManager } from '../session/manager.js';
+import { logger } from '../utils/logger.js';
+
+export const sessionStartSchema = z.object({
+  worktreePath: z.string().describe('Path to the git worktree directory'),
+  deviceType: z
+    .string()
+    .optional()
+    .describe('iOS device type (e.g., "iPhone 16 Pro"). Defaults to "iPhone 16 Pro"'),
+});
+
+export const sessionEndSchema = z.object({
+  sessionId: z.string().describe('Session ID to end'),
+});
+
+export async function handleSessionStart(
+  args: z.infer<typeof sessionStartSchema>
+): Promise<{
+  sessionId: string;
+  simulatorUdid: string;
+  deviceType: string;
+  worktreePath: string;
+}> {
+  logger.info('Tool: session_start', args);
+
+  const session = await sessionManager.createSession({
+    worktreePath: args.worktreePath,
+    deviceType: args.deviceType,
+  });
+
+  return {
+    sessionId: session.id,
+    simulatorUdid: session.simulatorUdid,
+    deviceType: session.deviceType,
+    worktreePath: session.worktreePath,
+  };
+}
+
+export async function handleSessionEnd(
+  args: z.infer<typeof sessionEndSchema>
+): Promise<{ success: boolean; message: string }> {
+  logger.info('Tool: session_end', args);
+
+  await sessionManager.endSession(args.sessionId);
+
+  return {
+    success: true,
+    message: `Session ${args.sessionId} ended successfully`,
+  };
+}
+
+export function handleSessionList(): {
+  sessions: Array<{
+    id: string;
+    worktreePath: string;
+    simulatorUdid: string;
+    deviceType: string;
+    createdAt: string;
+  }>;
+} {
+  logger.info('Tool: session_list');
+
+  const sessions = sessionManager.listSessions();
+
+  return { sessions };
+}

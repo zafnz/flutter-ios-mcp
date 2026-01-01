@@ -1,0 +1,303 @@
+# flutter-ios-mcp
+
+A Model Context Protocol (MCP) server that provides Flutter iOS development tooling for AI agents. Enables containerized Claude instances to build, run, and interact with Flutter iOS applications on a macOS host via Streamable HTTP transport.
+
+## Project Overview
+
+This MCP server bridges Docker-containerized AI agents with the Flutter/iOS toolchain running on macOS. It provides session-based isolation so multiple agents can work concurrently on different git worktrees, each with their own iOS Simulator instance.
+
+### Key Features
+
+- **Session-based isolation**: Each agent gets its own simulator and flutter process
+- **Git worktree support**: Concurrent agents work on separate worktrees of the same repo
+- **Log buffering & polling**: Flutter logs buffered in memory, retrieved via cursor-based pagination
+- **Hot reload/restart**: Interactive development workflow support
+- **Simulator UI control**: Tap, swipe, type, screenshot via Facebook IDB
+- **Remote access**: Streamable HTTP transport (no mcp-proxy needed)
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     macOS Host                              │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │     flutter-ios-mcp (Streamable HTTP)               │    │
+│  │          http://localhost:3000/mcp                  │    │
+│  │                                                     │    │
+│  │  Sessions:                                          │    │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐             │    │
+│  │  │ agent-1  │ │ agent-2  │ │ agent-N  │             │    │
+│  │  │ worktree │ │ worktree │ │ worktree │             │    │
+│  │  │ sim UDID │ │ sim UDID │ │ sim UDID │             │    │
+│  │  │ flutter  │ │ flutter  │ │ flutter  │             │    │
+│  │  │ process  │ │ process  │ │ process  │             │    │
+│  │  └──────────┘ └──────────┘ └──────────┘             │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                          │                                  │
+│         ┌────────────────┼────────────────┐                 │
+│         ▼                ▼                ▼                 │
+│    Simulator 1     Simulator 2      Simulator N             │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │    /shared/project (git repo with worktrees)        │    │
+│  │    /shared/agent-1  (worktree)                      │    │
+│  │    /shared/agent-2  (worktree)                      │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+                          ▲
+                          │ HTTP (host.docker.internal:3000)
+                          │
+┌─────────────────────────┴───────────────────────────────────┐
+│                    Docker Container(s)                      │
+│              Claude agents connect via MCP                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Tech Stack
+
+- **Runtime**: Node.js 18+
+- **Language**: TypeScript
+- **MCP SDK**: `@modelcontextprotocol/sdk` (Streamable HTTP transport)
+- **HTTP Framework**: Express
+- **Schema Validation**: Zod
+- **iOS Simulator**: `xcrun simctl` (native macOS)
+- **UI Automation**: Facebook IDB (`idb`)
+- **Flutter**: System Flutter installation
+
+## Project Structure
+
+```
+flutter-ios-mcp/
+├── src/
+│   ├── index.ts                    # Entry point, Express server setup
+│   ├── server.ts                   # MCP server configuration
+│   ├── transport.ts                # Streamable HTTP transport setup
+│   ├── session/
+│   │   ├── manager.ts              # Session lifecycle (create/destroy/list)
+│   │   ├── state.ts                # Session state store
+│   │   └── types.ts                # Session type definitions
+│   ├── flutter/
+│   │   ├── process.ts              # Flutter process spawn + log buffering
+│   │   ├── commands.ts             # Flutter CLI command builders
+│   │   └── types.ts
+│   ├── simulator/
+│   │   ├── simctl.ts               # xcrun simctl wrapper
+│   │   ├── idb.ts                  # Facebook IDB wrapper
+│   │   └── types.ts
+│   ├── tools/
+│   │   ├── index.ts                # Tool registration aggregator
+│   │   ├── session.ts              # session_start, session_end, session_list
+│   │   ├── simulator.ts            # simulator_list
+│   │   ├── flutter-commands.ts     # flutter_run, stop, hot_reload, hot_restart, logs
+│   │   ├── flutter-build.ts        # flutter_build, flutter_test (Phase 3)
+│   │   └── simulator-ui.ts         # UI interaction tools (Phase 4)
+│   └── utils/
+│       ├── exec.ts                 # Promisified exec with streaming support
+│       └── logger.ts               # Structured logging
+├── package.json
+├── tsconfig.json
+├── CLAUDE.md                       # This file
+└── README.md                       # User-facing documentation
+```
+
+## MCP Tools
+
+### Session Management
+
+| Tool | Description |
+|------|-------------|
+| `session_start` | Create session with worktree path, boot new simulator. Returns session_id + UDID |
+| `session_end` | Stop flutter process, shutdown and delete simulator |
+| `session_list` | List all active sessions with state |
+
+### Flutter Development
+
+| Tool | Description |
+|------|-------------|
+| `flutter_run` | Start `flutter run -d <udid>`, returns immediately with PID |
+| `flutter_stop` | Gracefully stop flutter run (sends 'q') |
+| `flutter_hot_reload` | Trigger hot reload (sends 'r') |
+| `flutter_hot_restart` | Trigger hot restart (sends 'R') |
+| `flutter_logs` | Get buffered logs with cursor-based pagination (fromIndex) |
+| `flutter_build` | Run `flutter build ios` (Phase 3) |
+| `flutter_test` | Run `flutter test` (Phase 3) |
+| `flutter_pub_get` | Run `flutter pub get` (Phase 3) |
+| `flutter_clean` | Run `flutter clean` (Phase 3) |
+| `flutter_analyze` | Run `flutter analyze` (Phase 3) |
+
+### Simulator UI (via IDB)
+
+| Tool | Description |
+|------|-------------|
+| `ui_describe_all` | Get accessibility tree for entire screen |
+| `ui_describe_point` | Get accessibility element at x,y coordinates |
+| `ui_tap` | Tap at coordinates (optional duration for long press) |
+| `ui_type` | Input text |
+| `ui_swipe` | Swipe gesture with start/end coordinates |
+| `ui_view` | Get compressed screenshot as base64 (for LLM vision) |
+| `screenshot` | Save full screenshot to file path |
+| `install_app` | Install .app bundle on simulator |
+| `launch_app` | Launch app by bundle identifier |
+
+### Simulator Management
+
+| Tool | Description |
+|------|-------------|
+| `simulator_list` | List available device types for simulator creation |
+
+## Implementation Phases
+
+### Phase 1: Foundation
+- [ ] Project scaffolding (package.json, tsconfig, etc.)
+- [ ] Express server with Streamable HTTP transport
+- [ ] MCP server initialization
+- [ ] Session manager with in-memory state
+- [ ] Simulator control: `simctl create`, `boot`, `shutdown`, `delete`
+- [ ] Tools: `session_start`, `session_end`, `session_list`, `simulator_list`
+
+### Phase 2: Flutter Process Core
+- [x] Flutter process spawning with pipes (via spawnStreaming)
+- [x] Log buffer with line indexing and timestamps (LogBuffer class)
+- [x] Stdin routing for hot reload commands (r/R/q)
+- [x] Non-blocking `flutter_run` (returns immediately with PID)
+- [x] Tools: `flutter_run`, `flutter_stop`, `flutter_hot_reload`, `flutter_hot_restart`
+- [x] Tool: `flutter_logs` (polling with fromIndex cursor)
+
+**Note:** MCP tool responses cannot natively stream. The correct pattern is:
+1. `flutter_run` starts process and returns immediately
+2. Logs buffer in memory (FlutterProcessManager + LogBuffer)
+3. Client polls `flutter_logs` with `fromIndex` for cursor-based pagination
+
+### Phase 3: Flutter Build & Test
+- [ ] Non-blocking output for long-running commands (same polling pattern)
+- [ ] Tools: `flutter_build`, `flutter_test` (return immediately, poll for logs)
+- [ ] Tools: `flutter_pub_get`, `flutter_clean`, `flutter_analyze`
+
+### Phase 4: Simulator UI
+- [ ] IDB wrapper with proper error handling
+- [ ] Tools: `ui_describe_all`, `ui_describe_point`
+- [ ] Tools: `ui_tap`, `ui_type`, `ui_swipe`
+- [ ] Tools: `ui_view` (compressed screenshot)
+- [ ] Tools: `screenshot`, `install_app`, `launch_app`
+
+### Phase 5: Polish & Documentation
+- [ ] Comprehensive error handling
+- [ ] Graceful shutdown (cleanup all sessions)
+- [ ] Connection recovery patterns
+- [ ] README with setup instructions
+- [ ] Docker connectivity testing guide
+
+## Design Decisions
+
+### Session Lifecycle
+- No session pooling or cleanup timers - simple create/destroy model
+- Each session creates a fresh simulator via `simctl clone` or `simctl create`
+- Session ID is a UUID, maps to worktree path + simulator UDID + flutter process
+
+### Log Streaming
+- MCP tool responses cannot natively stream (they return complete text content)
+- `flutter_run` returns immediately without blocking on process completion
+- All logs buffered in memory per session via `LogBuffer` class
+- `flutter_logs` provides cursor-based polling with `fromIndex` parameter
+- Logs cleared on session end via `FlutterProcessManager.cleanup()`
+
+### Simulator Creation
+- Use `xcrun simctl create` with user-specified device type
+- Default to latest iPhone Pro model if not specified
+- Simulators are deleted on session end (no reuse)
+
+### Error Handling
+- Tools return structured errors with actionable messages
+- Process failures include last N lines of output
+- Session operations are idempotent where possible
+
+## Dependencies
+
+```json
+{
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.x",
+    "express": "^4.x",
+    "zod": "^3.x",
+    "uuid": "^9.x"
+  },
+  "devDependencies": {
+    "@types/express": "^4.x",
+    "@types/node": "^20.x",
+    "@types/uuid": "^9.x",
+    "typescript": "^5.x"
+  }
+}
+```
+
+## Prerequisites (macOS Host)
+
+- Node.js 18+
+- Xcode with iOS Simulators installed
+- Flutter SDK in PATH
+- Facebook IDB installed (`brew install idb-companion`)
+- Git (for worktree support)
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | HTTP server port | `3000` |
+| `HOST` | HTTP server bind address | `0.0.0.0` |
+| `FLUTTER_PATH` | Path to flutter binary | `flutter` (from PATH) |
+| `IDB_PATH` | Path to idb binary | `idb` (from PATH) |
+| `LOG_LEVEL` | Logging verbosity | `info` |
+
+## Usage
+
+### Starting the Server
+
+```bash
+npm install
+npm run build
+npm start
+# Server running at http://localhost:3000/mcp
+```
+
+### Connecting from Docker
+
+Configure MCP client to connect to `http://host.docker.internal:3000/mcp`
+
+### Example Agent Workflow
+
+```
+1. session_start({ worktree_path: "/shared/agent-1", device_type: "iPhone 16 Pro" })
+   → { session_id: "abc-123", simulator_udid: "XXXX-YYYY" }
+
+2. flutter_pub_get({ session_id: "abc-123" })
+   → { success: true }
+
+3. flutter_run({ session_id: "abc-123" })
+   → SSE stream of flutter logs...
+   
+4. [Agent edits code in worktree]
+
+5. flutter_hot_reload({ session_id: "abc-123" })
+   → { success: true, message: "Reloaded 1 of 423 libraries" }
+
+6. ui_view({ session_id: "abc-123" })
+   → { image: "base64...", width: 390, height: 844 }
+
+7. ui_tap({ session_id: "abc-123", x: 195, y: 400 })
+   → { success: true }
+
+8. flutter_stop({ session_id: "abc-123" })
+   → { success: true }
+
+9. session_end({ session_id: "abc-123" })
+   → { success: true }
+```
+
+## References
+
+- [MCP Streamable HTTP Spec](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports)
+- [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
+- [ios-simulator-mcp](https://github.com/joshuayoes/ios-simulator-mcp) - Reference for simulator tools
+- [Facebook IDB](https://fbidb.io/) - iOS automation
+- [xcrun simctl](https://developer.apple.com/documentation/xcode/simulating-your-app-in-the-simulator) - Simulator CLI
