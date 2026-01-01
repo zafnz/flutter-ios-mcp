@@ -1,4 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
+import { existsSync, statSync } from 'fs';
+import { resolve } from 'path';
 import { sessionState } from './state.js';
 import { CreateSessionParams, Session, SessionInfo } from './types.js';
 import { logger } from '../utils/logger.js';
@@ -9,6 +11,23 @@ export class SessionManager {
     const { worktreePath, deviceType = 'iPhone 16 Pro' } = params;
 
     logger.info('Creating session', { worktreePath, deviceType });
+
+    // Validate worktree path exists and is a directory
+    const resolvedPath = resolve(worktreePath);
+    if (!existsSync(resolvedPath)) {
+      throw new Error(
+        `Worktree path does not exist: ${worktreePath}. ` +
+        'Ensure the path is correct and accessible.'
+      );
+    }
+
+    const stats = statSync(resolvedPath);
+    if (!stats.isDirectory()) {
+      throw new Error(
+        `Worktree path is not a directory: ${worktreePath}. ` +
+        'Provide a path to a directory containing a Flutter project.'
+      );
+    }
 
     const sessionId = uuidv4();
 

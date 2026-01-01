@@ -175,18 +175,35 @@ flutter-ios-mcp/
 - [ ] Tools: `flutter_pub_get`, `flutter_clean`, `flutter_analyze`
 
 ### Phase 4: Simulator UI
-- [ ] IDB wrapper with proper error handling
-- [ ] Tools: `ui_describe_all`, `ui_describe_point`
-- [ ] Tools: `ui_tap`, `ui_type`, `ui_swipe`
+- [x] IDB wrapper with proper error handling
+- [x] Tools: `ui_describe_all`, `ui_describe_point`
+- [x] Tools: `ui_tap`, `ui_type`, `ui_swipe`
+- [x] Tools: `screenshot`
 - [ ] Tools: `ui_view` (compressed screenshot)
-- [ ] Tools: `screenshot`, `install_app`, `launch_app`
+- [ ] Tools: `install_app`, `launch_app`
 
 ### Phase 5: Polish & Documentation
-- [ ] Comprehensive error handling
-- [ ] Graceful shutdown (cleanup all sessions)
-- [ ] Connection recovery patterns
+- [x] Comprehensive error handling (timeouts, better error messages)
+- [x] Graceful shutdown (cleanup all sessions)
+- [x] Input validation (worktree path exists)
 - [ ] README with setup instructions
 - [ ] Docker connectivity testing guide
+
+## Future Enhancements
+
+### Dual Transport Support (Stdio + HTTP)
+- [ ] Support both stdio and HTTP transports
+- [ ] Add `--stdio` flag for local MCP usage via Claude Code CLI
+- [ ] Default to HTTP mode for remote/Docker usage
+- [ ] Allow port configuration via `-p` or `--port` flag
+- [ ] Example: `claude mcp add flutter-ios-mcp npm start -- --stdio`
+- [ ] Example: `npm start -- --port 3000` (HTTP mode)
+
+### Long Polling for Logs
+- [ ] Implement `waitForNew` parameter in `flutter_logs` tool
+- [ ] Block request until new logs arrive or timeout occurs
+- [ ] More efficient than sleep + poll pattern
+- [ ] Returns immediately when new data available
 
 ## Design Decisions
 

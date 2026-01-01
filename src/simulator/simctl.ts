@@ -49,11 +49,16 @@ export async function createSimulator(deviceType: string): Promise<string> {
   const simulatorName = `MCP-${String(Date.now())}`;
 
   const result = await exec(
-    `${SIMCTL_PATH} create "${simulatorName}" "${deviceTypeId}"`
+    `${SIMCTL_PATH} create "${simulatorName}" "${deviceTypeId}"`,
+    { timeout: 30000 }
   );
 
   if (result.exitCode !== 0) {
-    throw new Error(`Failed to create simulator: ${result.stderr}`);
+    throw new Error(
+      `Failed to create simulator "${simulatorName}" with device type "${deviceType}": ${result.stderr}. ` +
+      'This may indicate insufficient disk space or Xcode/CoreSimulator issues. ' +
+      'Try running "xcrun simctl list devicetypes" to verify available device types.'
+    );
   }
 
   const udid = result.stdout.trim();
@@ -65,10 +70,14 @@ export async function createSimulator(deviceType: string): Promise<string> {
 export async function bootSimulator(udid: string): Promise<void> {
   logger.info('Booting simulator', { udid });
 
-  const result = await exec(`${SIMCTL_PATH} boot ${udid}`);
+  const result = await exec(`${SIMCTL_PATH} boot ${udid}`, { timeout: 60000 });
 
   if (result.exitCode !== 0 && !result.stderr.includes('Unable to boot device in current state: Booted')) {
-    throw new Error(`Failed to boot simulator: ${result.stderr}`);
+    throw new Error(
+      `Failed to boot simulator (UDID: ${udid}): ${result.stderr}. ` +
+      'This may indicate the simulator is in an invalid state or Xcode/CoreSimulator is not running properly. ' +
+      'Try running "xcrun simctl list" to check simulator status.'
+    );
   }
 
   logger.info('Simulator booted', { udid });

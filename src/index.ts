@@ -1,4 +1,4 @@
-import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
+import express from 'express';
 import { createMCPServer } from './server.js';
 import { setupTransport } from './transport.js';
 import { sessionManager } from './session/manager.js';
@@ -8,7 +8,11 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 
 async function main(): Promise<void> {
-  const app = createMcpExpressApp({ host: HOST });
+  const app = express();
+
+  // Middleware
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
   const mcpServer = createMCPServer();
   const transport = setupTransport(app);
@@ -25,6 +29,16 @@ async function main(): Promise<void> {
       port: String(PORT),
       mcpEndpoint: `http://${HOST}:${String(PORT)}/mcp`,
     });
+  });
+
+  server.on('error', (error: NodeJS.ErrnoException) => {
+    if (error.code === 'EADDRINUSE') {
+      logger.error(`Port ${PORT} is already in use`);
+      process.exit(1);
+    } else {
+      logger.error('Server error', { error: error.message });
+      process.exit(1);
+    }
   });
 
   const shutdown = async (): Promise<void> => {

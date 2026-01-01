@@ -18,6 +18,20 @@ import {
   handleFlutterHotRestart,
   handleFlutterLogs,
 } from './flutter-commands.js';
+import {
+  uiTapSchema,
+  uiTypeSchema,
+  uiSwipeSchema,
+  uiDescribeAllSchema,
+  uiDescribePointSchema,
+  screenshotSchema,
+  handleUiTap,
+  handleUiType,
+  handleUiSwipe,
+  handleUiDescribeAll,
+  handleUiDescribePoint,
+  handleScreenshot,
+} from './simulator-ui.js';
 import { logger } from '../utils/logger.js';
 
 export function registerTools(mcpServer: McpServer): void {
@@ -169,6 +183,138 @@ export function registerTools(mcpServer: McpServer): void {
           required: ['sessionId'],
         },
       },
+      {
+        name: 'ui_tap',
+        description: 'Tap at coordinates on the simulator screen.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sessionId: {
+              type: 'string',
+              description: 'Session ID',
+            },
+            x: {
+              type: 'number',
+              description: 'X coordinate',
+            },
+            y: {
+              type: 'number',
+              description: 'Y coordinate',
+            },
+            duration: {
+              type: 'number',
+              description: 'Duration in seconds for long press',
+            },
+          },
+          required: ['sessionId', 'x', 'y'],
+        },
+      },
+      {
+        name: 'ui_type',
+        description: 'Input text into the focused field on the simulator.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sessionId: {
+              type: 'string',
+              description: 'Session ID',
+            },
+            text: {
+              type: 'string',
+              description: 'Text to type',
+            },
+          },
+          required: ['sessionId', 'text'],
+        },
+      },
+      {
+        name: 'ui_swipe',
+        description: 'Swipe from one point to another on the simulator screen.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sessionId: {
+              type: 'string',
+              description: 'Session ID',
+            },
+            x_start: {
+              type: 'number',
+              description: 'Start X coordinate',
+            },
+            y_start: {
+              type: 'number',
+              description: 'Start Y coordinate',
+            },
+            x_end: {
+              type: 'number',
+              description: 'End X coordinate',
+            },
+            y_end: {
+              type: 'number',
+              description: 'End Y coordinate',
+            },
+            duration: {
+              type: 'number',
+              description: 'Swipe duration in seconds',
+            },
+          },
+          required: ['sessionId', 'x_start', 'y_start', 'x_end', 'y_end'],
+        },
+      },
+      {
+        name: 'ui_describe_all',
+        description: 'Get accessibility tree for the entire screen.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sessionId: {
+              type: 'string',
+              description: 'Session ID',
+            },
+          },
+          required: ['sessionId'],
+        },
+      },
+      {
+        name: 'ui_describe_point',
+        description: 'Get accessibility information at a specific point on the screen.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sessionId: {
+              type: 'string',
+              description: 'Session ID',
+            },
+            x: {
+              type: 'number',
+              description: 'X coordinate',
+            },
+            y: {
+              type: 'number',
+              description: 'Y coordinate',
+            },
+          },
+          required: ['sessionId', 'x', 'y'],
+        },
+      },
+      {
+        name: 'screenshot',
+        description: 'Take a screenshot of the simulator and save to file.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sessionId: {
+              type: 'string',
+              description: 'Session ID',
+            },
+            outputPath: {
+              type: 'string',
+              description: 'Path where screenshot should be saved',
+            },
+          },
+          required: ['sessionId', 'outputPath'],
+        },
+      },
     ],
   }));
 
@@ -244,6 +390,54 @@ export function registerTools(mcpServer: McpServer): void {
         case 'flutter_logs': {
           const parsed = flutterLogsSchema.parse(args);
           const result = handleFlutterLogs(parsed);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'ui_tap': {
+          const parsed = uiTapSchema.parse(args);
+          const result = await handleUiTap(parsed);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'ui_type': {
+          const parsed = uiTypeSchema.parse(args);
+          const result = await handleUiType(parsed);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'ui_swipe': {
+          const parsed = uiSwipeSchema.parse(args);
+          const result = await handleUiSwipe(parsed);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'ui_describe_all': {
+          const parsed = uiDescribeAllSchema.parse(args);
+          const result = await handleUiDescribeAll(parsed);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'ui_describe_point': {
+          const parsed = uiDescribePointSchema.parse(args);
+          const result = await handleUiDescribePoint(parsed);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'screenshot': {
+          const parsed = screenshotSchema.parse(args);
+          const result = await handleScreenshot(parsed);
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
