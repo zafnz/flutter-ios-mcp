@@ -146,14 +146,20 @@ The server will start on port 3000 by default.
 
 ### 2. Configure Your MCP Client
 
-For **Claude Desktop** or **Docker containers**, connect to:
+For **Claude Desktop** or **Docker Host**, connect to:
 ```
 http://localhost:3000/mcp
 ```
+```bash
+claude mcp add docker-flutter-ios-simulator-mcp http://localhost:3000/mcp
+```
 
-From **Docker**, use:
+From **Inside Docker**, use:
 ```
 http://host.docker.internal:3000/mcp
+```
+```bash
+claude mcp add docker-flutter-ios-simulator-mcp http://host.docker.internal:3000/mcp
 ```
 
 ### 3. Use the Tools
