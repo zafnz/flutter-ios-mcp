@@ -1,4 +1,4 @@
-# flutter-ios-mcp
+# docker-flutter-ios-simulator-mcp
 
 A Model Context Protocol (MCP) server that provides Flutter iOS development tooling for AI agents. Enables containerized Claude instances to build, run, and interact with Flutter iOS applications on a macOS host via Streamable HTTP transport.
 
@@ -22,7 +22,7 @@ This MCP server bridges Docker-containerized AI agents with the Flutter/iOS tool
 │                     macOS Host                              │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │     flutter-ios-mcp (Streamable HTTP)               │    │
+│  │     docker-flutter-ios-simulator-mcp (Streamable HTTP)               │    │
 │  │          http://localhost:3000/mcp                  │    │
 │  │                                                     │    │
 │  │  Sessions:                                          │    │
@@ -68,7 +68,7 @@ This MCP server bridges Docker-containerized AI agents with the Flutter/iOS tool
 ## Project Structure
 
 ```
-flutter-ios-mcp/
+docker-flutter-ios-simulator-mcp/
 ├── src/
 │   ├── index.ts                    # Entry point, Express server setup
 │   ├── server.ts                   # MCP server configuration
@@ -198,7 +198,7 @@ flutter-ios-mcp/
 - [ ] Add `--stdio` flag for local MCP usage via Claude Code CLI
 - [ ] Default to HTTP mode for remote/Docker usage
 - [ ] Allow port configuration via `-p` or `--port` flag
-- [ ] Example: `claude mcp add flutter-ios-mcp npm start -- --stdio`
+- [ ] Example: `claude mcp add docker-flutter-ios-simulator-mcp npm start -- --stdio`
 - [ ] Example: `npm start -- --port 3000` (HTTP mode)
 
 ### Long Polling for Logs

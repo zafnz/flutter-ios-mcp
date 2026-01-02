@@ -1,6 +1,6 @@
 # Publishing Guide
 
-This guide covers how to publish flutter-ios-mcp to npm.
+This guide covers how to publish docker-flutter-ios-simulator-mcp to npm.
 
 ## Prerequisites
 
@@ -136,7 +136,7 @@ The package name is taken. Choose a different name or use a scoped package:
 
 ```json
 {
-  "name": "@zafnz/flutter-ios-mcp"
+  "name": "@zafnz/docker-flutter-ios-simulator-mcp"
 }
 ```
 

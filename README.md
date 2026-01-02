@@ -76,7 +76,7 @@ Clone and run from source:
 ```bash
 # Clone the repository
 git clone https://github.com/zafnz/docker-flutter-ios-simulator-mcp.git
-cd flutter-ios-mcp
+cd docker-flutter-ios-simulator-mcp
 
 # Install dependencies
 npm install
@@ -182,7 +182,7 @@ session_end({ sessionId: "abc-123" })
 ### Command-Line Options
 
 ```bash
-flutter-ios-mcp [OPTIONS]
+docker-flutter-ios-simulator-mcp [OPTIONS]
 
 OPTIONS:
   -p, --port <port>              Port to listen on (default: 3000)
