@@ -75,7 +75,7 @@ Clone and run from source:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/flutter-ios-mcp.git
+git clone https://github.com/zafnz/flutter-ios-mcp.git
 cd flutter-ios-mcp
 
 # Install dependencies

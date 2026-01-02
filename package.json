@@ -15,17 +15,40 @@
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist build"
+    "clean": "rm -rf dist build",
+    "prepublishOnly": "npm run clean && npm run build && npm run lint && npm run typecheck && npm test",
+    "prepare": "npm run build"
   },
   "keywords": [
     "mcp",
+    "model-context-protocol",
     "flutter",
     "ios",
     "simulator",
-    "development"
+    "development",
+    "ai",
+    "agent",
+    "xcode",
+    "mobile",
+    "testing",
+    "automation"
   ],
-  "author": "",
+  "author": "Nick Clifford <nick@nickclifford.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zafnz/flutter-ios-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zafnz/flutter-ios-mcp/issues"
+  },
+  "homepage": "https://github.com/zafnz/flutter-ios-mcp#readme",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CLAUDE.md"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
     "express": "^4.21.2",
