@@ -88,10 +88,10 @@ function parseArgs(): CliArgs {
 
 function showHelp(): void {
   console.log(`
-flutter-ios-mcp - Model Context Protocol server for Flutter iOS development
+docker-flutter-ios-simulator-mcp - MCP server for containerized Flutter iOS development
 
 USAGE:
-  flutter-ios-mcp [OPTIONS]
+  docker-flutter-ios-simulator-mcp [OPTIONS]
 
 OPTIONS:
   -p, --port <port>              Port to listen on (default: 3000)
@@ -112,19 +112,19 @@ ENVIRONMENT VARIABLES:
   LOG_LEVEL                 Logging level (debug, info, warn, error)
 
 EXAMPLES:
-  flutter-ios-mcp
-  flutter-ios-mcp --port 8080
-  flutter-ios-mcp --port 3000 --host localhost
-  flutter-ios-mcp --allow-only /Users/alice/projects
-  flutter-ios-mcp --max-sessions 20
-  flutter-ios-mcp --pre-build-script "git pull" --post-build-script "echo Done"
-  PORT=8080 flutter-ios-mcp
+  docker-flutter-ios-simulator-mcp
+  docker-flutter-ios-simulator-mcp --port 8080
+  docker-flutter-ios-simulator-mcp --port 3000 --host localhost
+  docker-flutter-ios-simulator-mcp --allow-only /Users/alice/projects
+  docker-flutter-ios-simulator-mcp --max-sessions 20
+  docker-flutter-ios-simulator-mcp --pre-build-script "git pull" --post-build-script "echo Done"
+  PORT=8080 docker-flutter-ios-simulator-mcp
 
 SECURITY:
   By default, only Flutter projects under /Users/ are allowed to prevent
   malicious MCP clients from accessing system directories like /etc/, /usr/, etc.
 
-For more information, visit: https://github.com/yourusername/flutter-ios-mcp
+For more information, visit: https://github.com/zafnz/docker-flutter-ios-simulator-mcp
 `);
 }
 

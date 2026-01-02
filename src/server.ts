@@ -7,7 +7,7 @@ export function createMCPServer(): McpServer {
 
   const server = new McpServer(
     {
-      name: 'flutter-ios-mcp',
+      name: 'docker-flutter-ios-simulator-mcp',
       version: '0.1.0',
     },
     {
