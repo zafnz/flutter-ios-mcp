@@ -170,8 +170,9 @@ flutter-ios-mcp/
 3. Client polls `flutter_logs` with `fromIndex` for cursor-based pagination
 
 ### Phase 3: Flutter Build & Test
-- [x] Tools: `flutter_build`, `flutter_test` (one-shot commands, return full output)
-- [ ] Tools: `flutter_pub_get`, `flutter_clean`, `flutter_analyze`
+- [x] Tools: `flutter_build`, `flutter_test`, `flutter_clean` (one-shot commands, return full output)
+- [x] CLI flags: `--pre-build-script`, `--post-build-script` for running commands before/after builds
+- [ ] Tools: `flutter_pub_get`, `flutter_analyze`
 
 ### Phase 4: Simulator UI
 - [x] IDB wrapper with proper error handling

@@ -14,6 +14,7 @@ import {
   flutterLogsSchema,
   flutterBuildSchema,
   flutterTestSchema,
+  flutterCleanSchema,
   handleFlutterRun,
   handleFlutterStop,
   handleFlutterHotReload,
@@ -21,6 +22,7 @@ import {
   handleFlutterLogs,
   handleFlutterBuild,
   handleFlutterTest,
+  handleFlutterClean,
 } from './flutter-commands.js';
 import {
   uiTapSchema,
@@ -230,6 +232,21 @@ export function registerTools(mcpServer: McpServer): void {
               type: 'array',
               items: { type: 'string' },
               description: 'Additional Flutter test arguments (e.g., ["--coverage", "--reporter=json"])',
+            },
+          },
+          required: ['sessionId'],
+        },
+      },
+      {
+        name: 'flutter_clean',
+        description:
+          'Clean the Flutter project build cache and remove build artifacts. This removes the build/ directory and other cached files. Useful when builds fail or when switching between branches with different dependencies. Returns the output of the clean operation.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sessionId: {
+              type: 'string',
+              description: 'Session ID from session_start',
             },
           },
           required: ['sessionId'],
@@ -454,6 +471,14 @@ export function registerTools(mcpServer: McpServer): void {
         case 'flutter_test': {
           const parsed = flutterTestSchema.parse(args);
           const result = await handleFlutterTest(parsed);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'flutter_clean': {
+          const parsed = flutterCleanSchema.parse(args);
+          const result = await handleFlutterClean(parsed);
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };

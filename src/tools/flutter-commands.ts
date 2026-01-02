@@ -2,7 +2,43 @@ import { z } from 'zod';
 import { sessionManager } from '../session/manager.js';
 import { FlutterProcessManager } from '../flutter/process.js';
 import { logger } from '../utils/logger.js';
-import { execFile } from '../utils/exec.js';
+import { exec, execFile } from '../utils/exec.js';
+
+/**
+ * Execute a build script (pre or post) in the project directory.
+ * Scripts are executed using exec to allow shell features like pipes, &&, etc.
+ *
+ * @param script - Shell command to execute
+ * @param cwd - Working directory for the script
+ * @param scriptType - Type of script for logging (pre-build or post-build)
+ */
+async function executeScript(
+  script: string,
+  cwd: string,
+  scriptType: 'pre-build' | 'post-build'
+): Promise<void> {
+  logger.info(`Executing ${scriptType} script`, { script, cwd });
+
+  try {
+    const result = await exec(script, { cwd, timeout: 120000 }); // 2 minute timeout
+
+    if (result.exitCode !== 0) {
+      logger.warn(`${scriptType} script exited with non-zero code`, {
+        exitCode: result.exitCode,
+        stdout: result.stdout,
+        stderr: result.stderr,
+      });
+      // Don't throw - allow build to continue even if script fails
+    } else {
+      logger.info(`${scriptType} script completed successfully`, {
+        stdout: result.stdout,
+      });
+    }
+  } catch (error) {
+    logger.error(`${scriptType} script failed`, { error: String(error) });
+    // Don't throw - allow build to continue even if script fails
+  }
+}
 
 export const flutterRunSchema = z.object({
   sessionId: z.string().describe('Session ID'),
@@ -42,6 +78,12 @@ export async function handleFlutterRun(
     }
   }
 
+  // Execute pre-build script if configured
+  const preBuildScript = sessionManager.getPreBuildScript();
+  if (preBuildScript) {
+    await executeScript(preBuildScript, session.worktreePath, 'pre-build');
+  }
+
   const processManager = new FlutterProcessManager();
   session.flutterProcessManager = processManager;
 
@@ -52,6 +94,14 @@ export async function handleFlutterRun(
     flavor: args.flavor,
     additionalArgs: args.additionalArgs,
   });
+
+  // Execute post-build script if configured (don't await - run in background)
+  const postBuildScript = sessionManager.getPostBuildScript();
+  if (postBuildScript) {
+    executeScript(postBuildScript, session.worktreePath, 'post-build').catch((error: unknown) => {
+      logger.error('Post-build script error (non-blocking)', { error: String(error) });
+    });
+  }
 
   return {
     success: true,
@@ -182,6 +232,10 @@ export const flutterTestSchema = z.object({
   additionalArgs: z.array(z.string()).optional().describe('Additional Flutter test arguments'),
 });
 
+export const flutterCleanSchema = z.object({
+  sessionId: z.string().describe('Session ID'),
+});
+
 /**
  * Build the Flutter app for iOS without running it.
  * This is a one-shot command that runs to completion.
@@ -199,6 +253,12 @@ export async function handleFlutterBuild(
   const session = sessionManager.getSession(args.sessionId);
   if (!session) {
     throw new Error(`Session not found: ${args.sessionId}`);
+  }
+
+  // Execute pre-build script if configured
+  const preBuildScript = sessionManager.getPreBuildScript();
+  if (preBuildScript) {
+    await executeScript(preBuildScript, session.worktreePath, 'pre-build');
   }
 
   const buildArgs = ['build', 'ios'];
@@ -220,6 +280,12 @@ export async function handleFlutterBuild(
 
   const success = result.exitCode === 0;
   const output = result.stdout + (result.stderr ? `\n\nErrors:\n${result.stderr}` : '');
+
+  // Execute post-build script if configured
+  const postBuildScript = sessionManager.getPostBuildScript();
+  if (postBuildScript) {
+    await executeScript(postBuildScript, session.worktreePath, 'post-build');
+  }
 
   return {
     success,
@@ -277,5 +343,45 @@ export async function handleFlutterTest(
     message: success
       ? 'Tests completed successfully'
       : `Tests failed with exit code ${String(result.exitCode)}`,
+  };
+}
+
+/**
+ * Clean the Flutter project build cache.
+ * This is a one-shot command that runs to completion.
+ * Removes build artifacts and cached files.
+ */
+export async function handleFlutterClean(
+  args: z.infer<typeof flutterCleanSchema>
+): Promise<{
+  success: boolean;
+  output: string;
+  exitCode: number;
+  message: string;
+}> {
+  logger.info('Tool: flutter_clean', args);
+
+  const session = sessionManager.getSession(args.sessionId);
+  if (!session) {
+    throw new Error(`Session not found: ${args.sessionId}`);
+  }
+
+  logger.info('Running flutter clean', { cwd: session.worktreePath });
+
+  const result = await execFile('flutter', ['clean'], {
+    cwd: session.worktreePath,
+    timeout: 120000, // 2 minutes for clean
+  });
+
+  const success = result.exitCode === 0;
+  const output = result.stdout + (result.stderr ? `\n\nErrors:\n${result.stderr}` : '');
+
+  return {
+    success,
+    output,
+    exitCode: result.exitCode,
+    message: success
+      ? 'Clean completed successfully'
+      : `Clean failed with exit code ${String(result.exitCode)}`,
   };
 }

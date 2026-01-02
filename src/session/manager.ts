@@ -9,6 +9,8 @@ import { createSimulator, bootSimulator, shutdownSimulator, deleteSimulator } fr
 export class SessionManager {
   private allowedPathPrefix: string;
   private maxSessions: number;
+  private preBuildScript?: string;
+  private postBuildScript?: string;
 
   constructor(allowedPathPrefix = '/Users/', maxSessions = 10) {
     this.allowedPathPrefix = allowedPathPrefix;
@@ -20,18 +22,30 @@ export class SessionManager {
    *
    * @param allowedPathPrefix - Absolute path prefix for allowed Flutter projects (e.g., "/Users/")
    * @param maxSessions - Optional maximum number of concurrent sessions
+   * @param preBuildScript - Optional command to run before flutter build/run
+   * @param postBuildScript - Optional command to run after flutter build/run
    *
    * @example
-   * sessionManager.configure('/Users/alice/projects', 20);
+   * sessionManager.configure('/Users/alice/projects', 20, 'git pull', 'echo Done');
    */
-  configure(allowedPathPrefix: string, maxSessions?: number): void {
+  configure(
+    allowedPathPrefix: string,
+    maxSessions?: number,
+    preBuildScript?: string,
+    postBuildScript?: string
+  ): void {
     this.allowedPathPrefix = allowedPathPrefix;
     if (maxSessions !== undefined) {
       this.maxSessions = maxSessions;
-      logger.info('SessionManager configured', { allowedPathPrefix, maxSessions });
-    } else {
-      logger.info('SessionManager configured', { allowedPathPrefix });
     }
+    this.preBuildScript = preBuildScript;
+    this.postBuildScript = postBuildScript;
+    logger.info('SessionManager configured', {
+      allowedPathPrefix,
+      maxSessions: this.maxSessions,
+      preBuildScript: preBuildScript || 'none',
+      postBuildScript: postBuildScript || 'none',
+    });
   }
 
   /**
@@ -197,6 +211,24 @@ export class SessionManager {
    */
   getSession(sessionId: string): Session | undefined {
     return sessionState.get(sessionId);
+  }
+
+  /**
+   * Get the pre-build script command if configured.
+   *
+   * @returns Pre-build script command, or undefined if not set
+   */
+  getPreBuildScript(): string | undefined {
+    return this.preBuildScript;
+  }
+
+  /**
+   * Get the post-build script command if configured.
+   *
+   * @returns Post-build script command, or undefined if not set
+   */
+  getPostBuildScript(): string | undefined {
+    return this.postBuildScript;
   }
 
   async cleanup(): Promise<void> {

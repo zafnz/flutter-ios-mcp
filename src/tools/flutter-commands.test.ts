@@ -3,17 +3,23 @@ import type { Session } from '../session/types.js';
 import type { SpawnedProcess, ExecResult } from '../utils/exec.js';
 
 const mockGetSession = jest.fn<() => Session | undefined>();
+const mockGetPreBuildScript = jest.fn<() => string | undefined>();
+const mockGetPostBuildScript = jest.fn<() => string | undefined>();
 const mockSpawnStreaming = jest.fn<() => SpawnedProcess>();
+const mockExec = jest.fn<() => Promise<ExecResult>>();
 const mockExecFile = jest.fn<() => Promise<ExecResult>>();
 
 jest.unstable_mockModule('../session/manager.js', () => ({
   sessionManager: {
     getSession: mockGetSession,
+    getPreBuildScript: mockGetPreBuildScript,
+    getPostBuildScript: mockGetPostBuildScript,
   },
 }));
 
 jest.unstable_mockModule('../utils/exec.js', () => ({
   spawnStreaming: mockSpawnStreaming,
+  exec: mockExec,
   execFile: mockExecFile,
 }));
 
@@ -25,13 +31,20 @@ const {
   handleFlutterLogs,
   handleFlutterBuild,
   handleFlutterTest,
+  handleFlutterClean,
 } = await import('./flutter-commands.js');
 
 describe('Flutter Command Tools', () => {
   beforeEach(() => {
     mockGetSession.mockClear();
+    mockGetPreBuildScript.mockClear();
+    mockGetPostBuildScript.mockClear();
     mockSpawnStreaming.mockClear();
+    mockExec.mockClear();
     mockExecFile.mockClear();
+
+    mockGetPreBuildScript.mockReturnValue(undefined);
+    mockGetPostBuildScript.mockReturnValue(undefined);
 
     mockSpawnStreaming.mockReturnValue({
       pid: 12345,
@@ -41,6 +54,12 @@ describe('Flutter Command Tools', () => {
       } as unknown as NodeJS.WritableStream,
       kill: jest.fn(() => true),
       wait: jest.fn(() => Promise.resolve(0)),
+    });
+
+    mockExec.mockResolvedValue({
+      stdout: 'Script executed',
+      stderr: '',
+      exitCode: 0,
     });
 
     mockExecFile.mockResolvedValue({
@@ -370,6 +389,70 @@ describe('Flutter Command Tools', () => {
 
       await expect(
         handleFlutterTest({ sessionId: 'nonexistent' })
+      ).rejects.toThrow('Session not found');
+    });
+  });
+
+  describe('handleFlutterClean', () => {
+    it('should clean Flutter project successfully', async () => {
+      const session: Session = {
+        id: 'session-123',
+        worktreePath: '/path/to/worktree',
+        simulatorUdid: 'UDID-123',
+        deviceType: 'iPhone 16 Pro',
+        createdAt: new Date(),
+      };
+
+      mockGetSession.mockReturnValue(session);
+      mockExecFile.mockResolvedValue({
+        stdout: 'Deleting build/',
+        stderr: '',
+        exitCode: 0,
+      });
+
+      const result = await handleFlutterClean({ sessionId: 'session-123' });
+
+      expect(result.success).toBe(true);
+      expect(result.exitCode).toBe(0);
+      expect(result.message).toContain('Clean completed successfully');
+      expect(mockExecFile).toHaveBeenCalledWith(
+        'flutter',
+        ['clean'],
+        expect.objectContaining({
+          cwd: '/path/to/worktree',
+          timeout: 120000,
+        })
+      );
+    });
+
+    it('should handle clean failure', async () => {
+      const session: Session = {
+        id: 'session-123',
+        worktreePath: '/path/to/worktree',
+        simulatorUdid: 'UDID-123',
+        deviceType: 'iPhone 16 Pro',
+        createdAt: new Date(),
+      };
+
+      mockGetSession.mockReturnValue(session);
+      mockExecFile.mockResolvedValue({
+        stdout: '',
+        stderr: 'Clean failed',
+        exitCode: 1,
+      });
+
+      const result = await handleFlutterClean({ sessionId: 'session-123' });
+
+      expect(result.success).toBe(false);
+      expect(result.exitCode).toBe(1);
+      expect(result.message).toContain('Clean failed');
+    });
+
+    it('should throw if session not found', async () => {
+      mockGetSession.mockReturnValue(undefined);
+
+      await expect(
+        handleFlutterClean({ sessionId: 'nonexistent' })
       ).rejects.toThrow('Session not found');
     });
   });

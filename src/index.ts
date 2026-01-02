@@ -10,6 +10,8 @@ interface CliArgs {
   help: boolean;
   allowOnly: string;
   maxSessions: number;
+  preBuildScript?: string;
+  postBuildScript?: string;
 }
 
 function parseArgs(): CliArgs {
@@ -19,6 +21,8 @@ function parseArgs(): CliArgs {
   let help = false;
   let allowOnly = process.env.ALLOW_ONLY || '/Users/';
   let maxSessions = parseInt(process.env.MAX_SESSIONS || '10', 10);
+  let preBuildScript: string | undefined = process.env.PRE_BUILD_SCRIPT;
+  let postBuildScript: string | undefined = process.env.POST_BUILD_SCRIPT;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -57,6 +61,20 @@ function parseArgs(): CliArgs {
         console.error('Error: --max-sessions must be at least 1');
         process.exit(1);
       }
+    } else if (arg === '--pre-build-script') {
+      const scriptValue = args[++i];
+      if (!scriptValue) {
+        console.error('Error: --pre-build-script requires a command value');
+        process.exit(1);
+      }
+      preBuildScript = scriptValue;
+    } else if (arg === '--post-build-script') {
+      const scriptValue = args[++i];
+      if (!scriptValue) {
+        console.error('Error: --post-build-script requires a command value');
+        process.exit(1);
+      }
+      postBuildScript = scriptValue;
     } else {
       console.error(`Error: Unknown argument: ${arg}`);
       console.error('Use --help to see available options');
@@ -64,7 +82,7 @@ function parseArgs(): CliArgs {
     }
   }
 
-  return { port, host, help, allowOnly, maxSessions };
+  return { port, host, help, allowOnly, maxSessions, preBuildScript, postBuildScript };
 }
 
 function showHelp(): void {
@@ -75,17 +93,21 @@ USAGE:
   flutter-ios-mcp [OPTIONS]
 
 OPTIONS:
-  -p, --port <port>            Port to listen on (default: 3000)
-      --host <host>            Host address to bind to (default: 127.0.0.1)
-      --allow-only <path>      Only allow Flutter projects under this path (default: /Users/)
-      --max-sessions <number>  Maximum number of concurrent sessions (default: 10)
-  -h, --help                   Show this help message
+  -p, --port <port>              Port to listen on (default: 3000)
+      --host <host>              Host address to bind to (default: 127.0.0.1)
+      --allow-only <path>        Only allow Flutter projects under this path (default: /Users/)
+      --max-sessions <number>    Maximum number of concurrent sessions (default: 10)
+      --pre-build-script <cmd>   Command to run before flutter build/run (e.g., "git pull")
+      --post-build-script <cmd>  Command to run after flutter build/run completes
+  -h, --help                     Show this help message
 
 ENVIRONMENT VARIABLES:
   PORT                      Port to listen on (overridden by --port)
   HOST                      Host address to bind to (overridden by --host)
   ALLOW_ONLY                Path prefix for allowed projects (overridden by --allow-only)
   MAX_SESSIONS              Maximum concurrent sessions (overridden by --max-sessions)
+  PRE_BUILD_SCRIPT          Command to run before builds (overridden by --pre-build-script)
+  POST_BUILD_SCRIPT         Command to run after builds (overridden by --post-build-script)
   LOG_LEVEL                 Logging level (debug, info, warn, error)
 
 EXAMPLES:
@@ -94,6 +116,7 @@ EXAMPLES:
   flutter-ios-mcp --port 3000 --host localhost
   flutter-ios-mcp --allow-only /Users/alice/projects
   flutter-ios-mcp --max-sessions 20
+  flutter-ios-mcp --pre-build-script "git pull" --post-build-script "echo Done"
   PORT=8080 flutter-ios-mcp
 
 SECURITY:
@@ -105,7 +128,7 @@ For more information, visit: https://github.com/yourusername/flutter-ios-mcp
 }
 
 async function main(): Promise<void> {
-  const { port, host, help, allowOnly, maxSessions } = parseArgs();
+  const { port, host, help, allowOnly, maxSessions, preBuildScript, postBuildScript } = parseArgs();
 
   if (help) {
     showHelp();
@@ -113,7 +136,7 @@ async function main(): Promise<void> {
   }
 
   // Configure session manager with allowed path prefix and session limit
-  sessionManager.configure(allowOnly, maxSessions);
+  sessionManager.configure(allowOnly, maxSessions, preBuildScript, postBuildScript);
 
   const PORT = port;
   const HOST = host;
