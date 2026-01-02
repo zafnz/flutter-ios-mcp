@@ -17,6 +17,8 @@ The MCP server provides these tools to AI agents:
 
 **Flutter Development:**
 - `flutter_run` - Build and launch your app
+- `flutter_build` - Build iOS app without running (for CI/deployment)
+- `flutter_test` - Run Flutter tests and return results
 - `flutter_logs` - Monitor build progress and app output
 - `flutter_hot_reload` - Apply code changes instantly
 - `flutter_hot_restart` - Restart the app
