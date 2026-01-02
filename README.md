@@ -1,64 +1,265 @@
 # flutter-ios-mcp
 
-A Model Context Protocol (MCP) server that provides Flutter iOS development tooling for AI agents. Enables containerized Claude instances to build, run, and interact with Flutter iOS applications on a macOS host via Streamable HTTP transport.
+**Model Context Protocol server for Flutter iOS development with AI agents**
+
+Enables AI agents (like Claude) to build, run, and interact with Flutter iOS applications through an iOS Simulator on macOS. Perfect for AI-assisted mobile app development, automated testing, and interactive debugging.
 
 ## Features
 
-- **Session-based isolation**: Each agent gets its own simulator and flutter process
-- **Git worktree support**: Concurrent agents work on separate worktrees of the same repo
-- **Log streaming**: Real-time flutter output via Streamable HTTP SSE responses
-- **Hot reload/restart**: Interactive development workflow support
-- **Simulator UI control**: Tap, swipe, type, screenshot via Facebook IDB
-- **Remote access**: Streamable HTTP transport (no mcp-proxy needed)
+- 🎯 **Session-based Development** - Isolated simulator and Flutter process per session
+- 🔥 **Hot Reload & Restart** - Instant code updates without full rebuilds
+- 📱 **UI Automation** - Tap, swipe, type, and interact with the simulator
+- 📸 **Visual Feedback** - Screenshots returned as images (Docker-compatible)
+- 🔍 **Accessibility Tree** - Inspect UI elements and hierarchy
+- 📊 **Live Logs** - Real-time Flutter build output and app logs
+- 🌐 **HTTP Transport** - Works from Docker containers (no filesystem access needed)
 
-## Prerequisites (macOS Host)
+## Prerequisites
 
-- Node.js 18+
-- Xcode with iOS Simulators installed
-- Flutter SDK in PATH
-- Facebook IDB installed (`brew install idb-companion`)
-- Git (for worktree support)
+**macOS only** - Requires Xcode and iOS Simulator
+
+1. **Xcode** - Install from Mac App Store, then run:
+   ```bash
+   sudo xcode-select --switch /Applications/Xcode.app
+   xcodebuild -runFirstLaunch
+   ```
+
+2. **Flutter SDK** - [Install Flutter](https://docs.flutter.dev/get-started/install/macos) and ensure it's in your PATH:
+   ```bash
+   flutter --version
+   ```
+
+3. **Node.js 18+** - [Install Node.js](https://nodejs.org/)
+
+4. **Facebook IDB** - iOS automation tool:
+   ```bash
+   # First, ensure you have a modern python installed via homebrew (if not already done)
+   brew install python@3.12
+
+   # Then, install pipx using that specific python's pip
+   python3.12 -m pip install pipx
+
+   # Ensure pipx is added to your PATH
+   pipx ensurepath
+
+   # Install IDB
+   pipx install fb-idb
+
+   # Verify installation
+   idb --help
+   ```
 
 ## Installation
 
+### Option 1: NPX (Recommended for Users)
+
+No installation needed! Run directly with npx:
+
 ```bash
+npx flutter-ios-mcp
+# Server starts at http://localhost:3000/mcp
+```
+
+### Option 2: Local Development
+
+Clone and run from source:
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/flutter-ios-mcp.git
+cd flutter-ios-mcp
+
+# Install dependencies
 npm install
+
+# Build TypeScript
 npm run build
+
+# Start the server
+npm start
+# Server starts at http://localhost:3000/mcp
 ```
 
-## Usage
+## Quick Start
 
-### Starting the Server
+### 1. Start the MCP Server
 
 ```bash
-npm start
-# Server running at http://localhost:3000/mcp
+npx flutter-ios-mcp
 ```
+
+The server will start on port 3000 by default.
+
+### 2. Configure Your MCP Client
+
+For **Claude Desktop** or **Docker containers**, connect to:
+```
+http://localhost:3000/mcp
+```
+
+From **Docker**, use:
+```
+http://host.docker.internal:3000/mcp
+```
+
+### 3. Use the Tools
+
+The MCP server provides these tools to AI agents:
+
+**Session Management:**
+- `session_start` - Create a new development session with a simulator
+- `session_end` - Clean up and delete the simulator
+- `session_list` - View active sessions
+
+**Flutter Development:**
+- `flutter_run` - Build and launch your app
+- `flutter_logs` - Monitor build progress and app output
+- `flutter_hot_reload` - Apply code changes instantly
+- `flutter_hot_restart` - Restart the app
+- `flutter_stop` - Stop the running app
+
+**UI Interaction:**
+- `screenshot` - Capture and view the simulator screen
+- `ui_tap` - Tap at coordinates
+- `ui_swipe` - Swipe gestures (scrolling, swiping)
+- `ui_type` - Enter text into fields
+- `ui_describe_all` - Get accessibility tree
+- `ui_describe_point` - Inspect element at coordinates
+
+**Device Management:**
+- `simulator_list` - See available iOS device types
+
+## Example Workflow
+
+Here's a typical AI agent workflow:
+
+```javascript
+// 1. Start a session with your Flutter project
+session_start({
+  worktreePath: "/path/to/your/flutter/project",
+  deviceType: "iPhone 16 Pro"
+})
+// Returns: { sessionId: "abc-123", simulatorUdid: "..." }
+
+// 2. Run the Flutter app
+flutter_run({ sessionId: "abc-123" })
+
+// 3. Monitor build progress (poll every few seconds)
+flutter_logs({
+  sessionId: "abc-123",
+  fromIndex: 0,  // Start from beginning
+  limit: 100     // Get 100 lines
+})
+
+// 4. Take a screenshot to see the app
+screenshot({ sessionId: "abc-123" })
+// Returns image directly in response!
+
+// 5. Interact with the UI
+ui_tap({ sessionId: "abc-123", x: 200, y: 400 })
+
+// 6. Make code changes, then hot reload
+flutter_hot_reload({ sessionId: "abc-123" })
+
+// 7. Clean up when done
+session_end({ sessionId: "abc-123" })
+```
+
+## Configuration
 
 ### Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PORT` | HTTP server port | `3000` |
-| `HOST` | HTTP server bind address | `0.0.0.0` |
-| `FLUTTER_PATH` | Path to flutter binary | `flutter` (from PATH) |
-| `IDB_PATH` | Path to idb binary | `idb` (from PATH) |
-| `LOG_LEVEL` | Logging verbosity | `info` |
+| `HOST` | Server bind address | `0.0.0.0` |
+| `LOG_LEVEL` | Logging verbosity (`debug`, `info`, `warn`, `error`) | `info` |
 
-### Connecting from Docker
+### Custom Port
 
-Configure MCP client to connect to `http://host.docker.internal:3000/mcp`
+```bash
+PORT=8080 npx flutter-ios-mcp
+```
+
+## Troubleshooting
+
+### "Session not found" errors
+- Sessions are in-memory and lost if the MCP server restarts
+- Create a new session after restarting the server
+
+### "Simulator failed to boot"
+- Check Xcode is installed: `xcode-select -p`
+- Verify simulators are available: `xcrun simctl list devices`
+- Try rebooting: `sudo killall -9 com.apple.CoreSimulator.CoreSimulatorService`
+
+### "Flutter not found"
+- Ensure Flutter is in your PATH: `which flutter`
+- Add to PATH in `~/.zshrc` or `~/.bash_profile`
+
+### "IDB command failed"
+- Verify IDB is installed: `which idb`
+- Check IDB version: `idb --version`
+- Reinstall if needed: `pipx install --force fb-idb`
+
+### Screenshots not appearing
+- Screenshots are returned as images in the MCP response
+- They work automatically with Docker containers (no filesystem needed)
+- Use the optional `outputPath` parameter only if you need a local file
+
+### First Flutter build is slow
+- First build can take 1-2 minutes (normal)
+- Use `flutter_logs` to monitor progress
+- Subsequent builds are much faster with hot reload
 
 ## Development
 
+### Run in Development Mode
+
 ```bash
-npm run dev          # Dev mode with watch
+npm run dev          # Watch mode with auto-restart
+npm run build        # Build TypeScript
 npm test             # Run tests
 npm run test:watch   # Tests in watch mode
-npm run lint         # ESLint
-npm run typecheck    # Type check only
+npm run lint         # Check code style
+npm run typecheck    # Type checking
 ```
+
+### Project Structure
+
+```
+src/
+├── index.ts           # Entry point & Express server
+├── server.ts          # MCP server setup
+├── session/           # Session management
+├── flutter/           # Flutter process control
+├── simulator/         # iOS Simulator & IDB wrappers
+├── tools/             # MCP tool definitions
+└── utils/             # Helpers & utilities
+```
+
+## How It Works
+
+1. **Session-based Isolation**: Each session creates a dedicated iOS Simulator and Flutter process
+2. **HTTP Transport**: MCP protocol over HTTP (works from Docker containers)
+3. **Log Buffering**: Flutter output is buffered in memory, retrieved via polling
+4. **Image Transport**: Screenshots are returned as base64 PNG in MCP responses
+5. **UI Automation**: Uses Facebook IDB for simulator interaction
+
+## Contributing
+
+Contributions welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Run tests: `npm test`
+4. Submit a pull request
 
 ## License
 
 MIT
+
+## Links
+
+- [MCP Protocol Specification](https://modelcontextprotocol.io/)
+- [Flutter Documentation](https://docs.flutter.dev/)
+- [Facebook IDB](https://fbidb.io/)
+- [Xcode](https://developer.apple.com/xcode/)
