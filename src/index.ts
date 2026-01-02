@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import express from 'express';
 import { createMCPServer } from './server.js';
 import { setupTransport } from './transport.js';
