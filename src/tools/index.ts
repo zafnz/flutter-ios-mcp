@@ -12,11 +12,15 @@ import {
   flutterRunSchema,
   flutterCommandSchema,
   flutterLogsSchema,
+  flutterBuildSchema,
+  flutterTestSchema,
   handleFlutterRun,
   handleFlutterStop,
   handleFlutterHotReload,
   handleFlutterHotRestart,
   handleFlutterLogs,
+  handleFlutterBuild,
+  handleFlutterTest,
 } from './flutter-commands.js';
 import {
   uiTapSchema,
@@ -178,6 +182,54 @@ export function registerTools(mcpServer: McpServer): void {
             limit: {
               type: 'number',
               description: 'Maximum number of log lines to return (default: 100). Use smaller values for frequent polling.',
+            },
+          },
+          required: ['sessionId'],
+        },
+      },
+      {
+        name: 'flutter_build',
+        description:
+          'Build the Flutter app for iOS without running it. This is a one-shot command that compiles the app and returns the full build output. Useful for verifying builds succeed before deployment or testing. Unlike flutter_run, this does not start an ongoing process.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sessionId: {
+              type: 'string',
+              description: 'Session ID from session_start',
+            },
+            flavor: {
+              type: 'string',
+              description: 'Build flavor (e.g., "dev", "prod")',
+            },
+            additionalArgs: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Additional Flutter build arguments (e.g., ["--release", "--no-tree-shake-icons"])',
+            },
+          },
+          required: ['sessionId'],
+        },
+      },
+      {
+        name: 'flutter_test',
+        description:
+          'Run Flutter tests and return the results. This executes all tests (or specific test files if path is provided) and returns the complete test output including pass/fail status. Useful for continuous integration and verifying code quality.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sessionId: {
+              type: 'string',
+              description: 'Session ID from session_start',
+            },
+            path: {
+              type: 'string',
+              description: 'Optional path to specific test file or directory (e.g., "test/widget_test.dart"). If omitted, runs all tests.',
+            },
+            additionalArgs: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Additional Flutter test arguments (e.g., ["--coverage", "--reporter=json"])',
             },
           },
           required: ['sessionId'],
@@ -386,6 +438,22 @@ export function registerTools(mcpServer: McpServer): void {
         case 'flutter_logs': {
           const parsed = flutterLogsSchema.parse(args);
           const result = handleFlutterLogs(parsed);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'flutter_build': {
+          const parsed = flutterBuildSchema.parse(args);
+          const result = await handleFlutterBuild(parsed);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'flutter_test': {
+          const parsed = flutterTestSchema.parse(args);
+          const result = await handleFlutterTest(parsed);
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };

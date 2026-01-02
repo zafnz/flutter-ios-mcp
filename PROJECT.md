@@ -170,8 +170,7 @@ flutter-ios-mcp/
 3. Client polls `flutter_logs` with `fromIndex` for cursor-based pagination
 
 ### Phase 3: Flutter Build & Test
-- [ ] Non-blocking output for long-running commands (same polling pattern)
-- [ ] Tools: `flutter_build`, `flutter_test` (return immediately, poll for logs)
+- [x] Tools: `flutter_build`, `flutter_test` (one-shot commands, return full output)
 - [ ] Tools: `flutter_pub_get`, `flutter_clean`, `flutter_analyze`
 
 ### Phase 4: Simulator UI

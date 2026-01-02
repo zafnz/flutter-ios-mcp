@@ -1,114 +1,71 @@
 # CLAUDE.md
 
-Rules and context for Claude when working on this project.
+Information and instructions to AI agents using this MCP
 
-## Project Summary
+## Purpose
 
-flutter-ios-mcp is an MCP server providing Flutter iOS development tooling for AI agents. It enables containerized Claude instances to build, run, and interact with Flutter iOS apps on a macOS host via Streamable HTTP transport.
+This MCP provides access to and control of building flutter apps, launching the iOS simulator, and interacting with it, including taking screenshots and getting accessibility info.
 
-## Tech Stack
+### 3. Use the Tools
 
-- TypeScript, Node.js 18+
-- Express for HTTP server
-- @modelcontextprotocol/sdk for MCP
-- Zod for schema validation
-- Jest for testing
-- xcrun simctl for iOS Simulator control
-- Facebook IDB for UI automation
+The MCP server provides these tools to AI agents:
 
-## Commands
+**Session Management:**
+- `session_start` - Create a new development session with a simulator
+- `session_end` - Clean up and delete the simulator
+- `session_list` - View active sessions
 
-```bash
-npm install          # Install dependencies
-npm run build        # Compile TypeScript
-npm run dev          # Dev mode with watch
-npm test             # Run tests
-npm run test:watch   # Tests in watch mode
-npm run lint         # ESLint
-npm run typecheck    # Type check only
-npm start            # Start server
+**Flutter Development:**
+- `flutter_run` - Build and launch your app
+- `flutter_logs` - Monitor build progress and app output
+- `flutter_hot_reload` - Apply code changes instantly
+- `flutter_hot_restart` - Restart the app
+- `flutter_stop` - Stop the running app
+
+**UI Interaction:**
+- `screenshot` - Capture and view the simulator screen
+- `ui_tap` - Tap at coordinates
+- `ui_swipe` - Swipe gestures (scrolling, swiping)
+- `ui_type` - Enter text into fields
+- `ui_describe_all` - Get accessibility tree
+- `ui_describe_point` - Inspect element at coordinates
+
+**Device Management:**
+- `simulator_list` - See available iOS device types
+
+## Example Workflow
+
+Here's a typical AI agent workflow:
+
+```javascript
+// 1. Start a session with your Flutter project
+session_start({
+  worktreePath: "/path/to/your/flutter/project",
+  deviceType: "iPhone 16 Pro"
+})
+// Returns: { sessionId: "abc-123", simulatorUdid: "..." }
+
+// 2. Run the Flutter app
+flutter_run({ sessionId: "abc-123" })
+
+// 3. Monitor build progress (poll every few seconds)
+flutter_logs({
+  sessionId: "abc-123",
+  fromIndex: 0,  // Start from beginning
+  limit: 100     // Get 100 lines
+})
+
+// 4. Take a screenshot to see the app
+screenshot({ sessionId: "abc-123" })
+// Returns image directly in response!
+
+// 5. Interact with the UI
+ui_tap({ sessionId: "abc-123", x: 200, y: 400 })
+
+// 6. Make code changes, then hot reload
+flutter_hot_reload({ sessionId: "abc-123" })
+
+// 7. Clean up when done
+session_end({ sessionId: "abc-123" })
 ```
 
-## Git Workflow
-
-**Before committing:**
-1. Run `npm run lint` and fix issues
-2. Run `npm run typecheck` and fix errors
-3. Run `npm test` and ensure all pass
-4. Stage with `git add -p` to review changes
-
-**Commit messages:** Use conventional commits
-```
-type(scope): description
-```
-Types: feat, fix, refactor, test, docs, chore
-
-**Do not commit:** node_modules/, build/, dist/, .env files, commented-out code
-
-## Code Style
-
-- Strict TypeScript, no `any`
-- Explicit return types on exports
-- Interface over type for objects
-- Files under 300 lines
-- One primary export per file
-- Co-locate tests: `foo.ts` → `foo.test.ts`
-
-**Naming:**
-- Files: kebab-case.ts
-- Classes/Interfaces: PascalCase  
-- Functions/variables: camelCase
-- Constants: SCREAMING_SNAKE_CASE
-
-## Testing
-
-Write tests for all new functionality. Mock external dependencies (simctl, idb, flutter CLI).
-
-```typescript
-describe('ClassName', () => {
-  describe('methodName', () => {
-    it('should do expected behavior', () => {
-      // ...
-    });
-  });
-});
-```
-
-Run specific tests: `npm test -- path/to/file.test.ts`
-
-## Project Structure
-
-```
-src/
-  index.ts           # Entry point
-  server.ts          # MCP server setup
-  session/           # Session management
-  flutter/           # Flutter process control
-  simulator/         # simctl and IDB wrappers
-  tools/             # MCP tool definitions
-  utils/             # Helpers (exec, logger)
-```
-
-## Key Patterns
-
-**Session-based isolation:** Each agent session gets its own simulator UDID and flutter process. Sessions map worktree path → simulator → process.
-
-**Log streaming:** flutter_run returns immediately. Logs are buffered in memory and retrieved via flutter_logs polling with cursor-based pagination (fromIndex). MCP tools cannot stream responses natively.
-
-**Error handling:** Use custom error classes, include context, never swallow errors.
-
-## Implementation Phases
-
-1. Foundation - Express, MCP, session manager, simctl
-2. Flutter Process - spawn, logs, hot reload
-3. Build & Test - flutter build/test with streaming
-4. Simulator UI - IDB wrapper, tap/type/swipe/screenshot
-5. Polish - error handling, docs
-
-## When Adding Tools
-
-1. Define schema with Zod in `src/tools/`
-2. Implement handler function
-3. Register in `src/tools/index.ts`
-4. Write tests with mocked dependencies
-5. Update tool reference in README

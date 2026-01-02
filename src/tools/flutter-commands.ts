@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { sessionManager } from '../session/manager.js';
 import { FlutterProcessManager } from '../flutter/process.js';
 import { logger } from '../utils/logger.js';
+import { execFile } from '../utils/exec.js';
 
 export const flutterRunSchema = z.object({
   sessionId: z.string().describe('Session ID'),
@@ -166,5 +167,115 @@ export function handleFlutterLogs(
     })),
     nextIndex: result.nextIndex,
     totalLines: result.totalLines,
+  };
+}
+
+export const flutterBuildSchema = z.object({
+  sessionId: z.string().describe('Session ID'),
+  flavor: z.string().optional().describe('Build flavor'),
+  additionalArgs: z.array(z.string()).optional().describe('Additional Flutter build arguments'),
+});
+
+export const flutterTestSchema = z.object({
+  sessionId: z.string().describe('Session ID'),
+  path: z.string().optional().describe('Test file or directory path (e.g., test/widget_test.dart)'),
+  additionalArgs: z.array(z.string()).optional().describe('Additional Flutter test arguments'),
+});
+
+/**
+ * Build the Flutter app for iOS without running it.
+ * This is a one-shot command that runs to completion.
+ */
+export async function handleFlutterBuild(
+  args: z.infer<typeof flutterBuildSchema>
+): Promise<{
+  success: boolean;
+  output: string;
+  exitCode: number;
+  message: string;
+}> {
+  logger.info('Tool: flutter_build', args);
+
+  const session = sessionManager.getSession(args.sessionId);
+  if (!session) {
+    throw new Error(`Session not found: ${args.sessionId}`);
+  }
+
+  const buildArgs = ['build', 'ios'];
+
+  if (args.flavor) {
+    buildArgs.push('--flavor', args.flavor);
+  }
+
+  if (args.additionalArgs) {
+    buildArgs.push(...args.additionalArgs);
+  }
+
+  logger.info('Running flutter build', { args: buildArgs, cwd: session.worktreePath });
+
+  const result = await execFile('flutter', buildArgs, {
+    cwd: session.worktreePath,
+    timeout: 600000, // 10 minutes for builds
+  });
+
+  const success = result.exitCode === 0;
+  const output = result.stdout + (result.stderr ? `\n\nErrors:\n${result.stderr}` : '');
+
+  return {
+    success,
+    output,
+    exitCode: result.exitCode,
+    message: success
+      ? 'Build completed successfully'
+      : `Build failed with exit code ${String(result.exitCode)}`,
+  };
+}
+
+/**
+ * Run Flutter tests.
+ * This is a one-shot command that runs to completion.
+ */
+export async function handleFlutterTest(
+  args: z.infer<typeof flutterTestSchema>
+): Promise<{
+  success: boolean;
+  output: string;
+  exitCode: number;
+  message: string;
+}> {
+  logger.info('Tool: flutter_test', args);
+
+  const session = sessionManager.getSession(args.sessionId);
+  if (!session) {
+    throw new Error(`Session not found: ${args.sessionId}`);
+  }
+
+  const testArgs = ['test'];
+
+  if (args.path) {
+    testArgs.push(args.path);
+  }
+
+  if (args.additionalArgs) {
+    testArgs.push(...args.additionalArgs);
+  }
+
+  logger.info('Running flutter test', { args: testArgs, cwd: session.worktreePath });
+
+  const result = await execFile('flutter', testArgs, {
+    cwd: session.worktreePath,
+    timeout: 600000, // 10 minutes for tests
+  });
+
+  const success = result.exitCode === 0;
+  const output = result.stdout + (result.stderr ? `\n\nErrors:\n${result.stderr}` : '');
+
+  return {
+    success,
+    output,
+    exitCode: result.exitCode,
+    message: success
+      ? 'Tests completed successfully'
+      : `Tests failed with exit code ${String(result.exitCode)}`,
   };
 }
