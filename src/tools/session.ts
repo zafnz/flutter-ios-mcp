@@ -3,7 +3,7 @@ import { sessionManager } from '../session/manager.js';
 import { logger } from '../utils/logger.js';
 
 export const sessionStartSchema = z.object({
-  worktreePath: z.string().describe('Path to the git worktree directory'),
+  worktreePath: z.string().describe('Absolute path to Flutter project directory'),
   deviceType: z
     .string()
     .optional()

@@ -42,18 +42,18 @@ export function registerTools(mcpServer: McpServer): void {
       {
         name: 'session_start',
         description:
-          'Create a new session with a git worktree path and boot a new iOS simulator. Returns session ID and simulator UDID.',
+          'Start a new Flutter development session. Creates and boots an iOS simulator, associates it with your Flutter project directory. This is always the first step - you must create a session before running Flutter or interacting with the simulator. Returns session ID (use this for all subsequent operations) and simulator UDID.',
         inputSchema: {
           type: 'object',
           properties: {
             worktreePath: {
               type: 'string',
-              description: 'Path to the git worktree directory',
+              description: 'Absolute path to your Flutter project directory (the folder containing pubspec.yaml)',
             },
             deviceType: {
               type: 'string',
               description:
-                'iOS device type (e.g., "iPhone 16 Pro"). Defaults to "iPhone 16 Pro"',
+                'iOS device type to simulate (e.g., "iPhone 16 Pro", "iPhone 15", "iPad Pro"). Defaults to "iPhone 16 Pro". Use simulator_list to see available types.',
             },
           },
           required: ['worktreePath'],
@@ -62,13 +62,13 @@ export function registerTools(mcpServer: McpServer): void {
       {
         name: 'session_end',
         description:
-          'End a session, stop any running flutter processes, shutdown and delete the simulator.',
+          'Clean up and end a Flutter development session. Gracefully stops the Flutter app, shuts down the simulator, and deletes it. Always call this when done to avoid leaving orphaned simulators running. Required before starting a new session for the same project.',
         inputSchema: {
           type: 'object',
           properties: {
             sessionId: {
               type: 'string',
-              description: 'Session ID to end',
+              description: 'Session ID from session_start',
             },
           },
           required: ['sessionId'],
@@ -76,7 +76,7 @@ export function registerTools(mcpServer: McpServer): void {
       },
       {
         name: 'session_list',
-        description: 'List all active sessions with their details.',
+        description: 'List all currently active Flutter development sessions. Shows session IDs, project paths, simulator UDIDs, and device types. Useful for checking what sessions are running or finding a session ID you forgot.',
         inputSchema: {
           type: 'object',
           properties: {},
@@ -84,7 +84,7 @@ export function registerTools(mcpServer: McpServer): void {
       },
       {
         name: 'simulator_list',
-        description: 'List available iOS device types for simulator creation.',
+        description: 'List all available iOS device types that can be used for simulator creation. Use this to see valid options for the deviceType parameter in session_start (e.g., "iPhone 16 Pro", "iPhone 15", "iPad Pro 12.9-inch").',
         inputSchema: {
           type: 'object',
           properties: {},
@@ -93,26 +93,26 @@ export function registerTools(mcpServer: McpServer): void {
       {
         name: 'flutter_run',
         description:
-          'Start Flutter app on the simulator. Streams logs in real-time. Returns immediately with process info.',
+          'Build and launch the Flutter app on the simulator. This starts the Flutter development server and runs your app. Returns immediately with process info - the app builds in the background. Use flutter_logs to monitor build progress and see any errors. First build may take 1-2 minutes.',
         inputSchema: {
           type: 'object',
           properties: {
             sessionId: {
               type: 'string',
-              description: 'Session ID',
+              description: 'Session ID from session_start',
             },
             target: {
               type: 'string',
-              description: 'Target file (e.g., lib/main.dart)',
+              description: 'Target entry point file (e.g., "lib/main.dart"). Defaults to lib/main.dart if not specified.',
             },
             flavor: {
               type: 'string',
-              description: 'Build flavor',
+              description: 'Build flavor for multi-flavor apps (e.g., "dev", "prod")',
             },
             additionalArgs: {
               type: 'array',
               items: { type: 'string' },
-              description: 'Additional Flutter arguments',
+              description: 'Additional Flutter CLI arguments',
             },
           },
           required: ['sessionId'],
@@ -120,13 +120,13 @@ export function registerTools(mcpServer: McpServer): void {
       },
       {
         name: 'flutter_stop',
-        description: 'Stop the running Flutter app gracefully (sends \'q\' command).',
+        description: 'Stop the running Flutter app gracefully. Use this before ending the session or when you need to restart the app completely.',
         inputSchema: {
           type: 'object',
           properties: {
             sessionId: {
               type: 'string',
-              description: 'Session ID',
+              description: 'Session ID from session_start',
             },
           },
           required: ['sessionId'],
@@ -134,13 +134,13 @@ export function registerTools(mcpServer: McpServer): void {
       },
       {
         name: 'flutter_hot_reload',
-        description: 'Trigger hot reload for the running Flutter app (sends \'r\' command).',
+        description: 'Perform a hot reload - quickly inject updated code into the running app while preserving state. Use this after making code changes to see them instantly without restarting. Faster than hot restart but cannot handle certain changes (new dependencies, native code, etc).',
         inputSchema: {
           type: 'object',
           properties: {
             sessionId: {
               type: 'string',
-              description: 'Session ID',
+              description: 'Session ID from session_start',
             },
           },
           required: ['sessionId'],
@@ -148,13 +148,13 @@ export function registerTools(mcpServer: McpServer): void {
       },
       {
         name: 'flutter_hot_restart',
-        description: 'Trigger hot restart for the running Flutter app (sends \'R\' command).',
+        description: 'Perform a hot restart - restart the app from scratch while keeping the same build. Slower than hot reload but handles more types of changes. Use when hot reload fails or when you need to reset app state.',
         inputSchema: {
           type: 'object',
           properties: {
             sessionId: {
               type: 'string',
-              description: 'Session ID',
+              description: 'Session ID from session_start',
             },
           },
           required: ['sessionId'],
@@ -163,21 +163,21 @@ export function registerTools(mcpServer: McpServer): void {
       {
         name: 'flutter_logs',
         description:
-          'Get buffered Flutter logs with pagination. Use fromIndex to poll for new logs.',
+          'Retrieve Flutter build output and app logs. Logs are buffered in memory - use fromIndex to poll for new logs since your last check. Essential for monitoring build progress, debugging errors, and seeing app output (print statements, exceptions, etc).',
         inputSchema: {
           type: 'object',
           properties: {
             sessionId: {
               type: 'string',
-              description: 'Session ID',
+              description: 'Session ID from session_start',
             },
             fromIndex: {
               type: 'number',
-              description: 'Start index for log retrieval',
+              description: 'Start reading from this log line index. Use the nextIndex from previous response to get only new logs. Omit to get all logs from the beginning.',
             },
             limit: {
               type: 'number',
-              description: 'Maximum number of lines to return (default: 100)',
+              description: 'Maximum number of log lines to return (default: 100). Use smaller values for frequent polling.',
             },
           },
           required: ['sessionId'],
@@ -185,25 +185,25 @@ export function registerTools(mcpServer: McpServer): void {
       },
       {
         name: 'ui_tap',
-        description: 'Tap at coordinates on the simulator screen.',
+        description: 'Simulate a tap/touch on the simulator screen at specific coordinates. Use to interact with buttons, text fields, or any tappable UI element. Take a screenshot first to identify coordinates. Add duration for long press gestures.',
         inputSchema: {
           type: 'object',
           properties: {
             sessionId: {
               type: 'string',
-              description: 'Session ID',
+              description: 'Session ID from session_start',
             },
             x: {
               type: 'number',
-              description: 'X coordinate',
+              description: 'X coordinate in points (horizontal position, 0=left edge)',
             },
             y: {
               type: 'number',
-              description: 'Y coordinate',
+              description: 'Y coordinate in points (vertical position, 0=top edge)',
             },
             duration: {
               type: 'number',
-              description: 'Duration in seconds for long press',
+              description: 'Hold duration in seconds for long press. Omit for regular tap.',
             },
           },
           required: ['sessionId', 'x', 'y'],
@@ -211,17 +211,17 @@ export function registerTools(mcpServer: McpServer): void {
       },
       {
         name: 'ui_type',
-        description: 'Input text into the focused field on the simulator.',
+        description: 'Type text into the currently focused text field on the simulator. Tap on a text field first to focus it, then use this to enter text. Works for text fields, text areas, search boxes, etc.',
         inputSchema: {
           type: 'object',
           properties: {
             sessionId: {
               type: 'string',
-              description: 'Session ID',
+              description: 'Session ID from session_start',
             },
             text: {
               type: 'string',
-              description: 'Text to type',
+              description: 'Text to type into the focused field',
             },
           },
           required: ['sessionId', 'text'],
@@ -229,33 +229,33 @@ export function registerTools(mcpServer: McpServer): void {
       },
       {
         name: 'ui_swipe',
-        description: 'Swipe from one point to another on the simulator screen.',
+        description: 'Simulate a swipe gesture on the simulator screen. Use for scrolling, swiping between pages, pull-to-refresh, dismissing items, etc. Specify start and end coordinates to control direction and distance.',
         inputSchema: {
           type: 'object',
           properties: {
             sessionId: {
               type: 'string',
-              description: 'Session ID',
+              description: 'Session ID from session_start',
             },
             x_start: {
               type: 'number',
-              description: 'Start X coordinate',
+              description: 'Starting X coordinate in points',
             },
             y_start: {
               type: 'number',
-              description: 'Start Y coordinate',
+              description: 'Starting Y coordinate in points',
             },
             x_end: {
               type: 'number',
-              description: 'End X coordinate',
+              description: 'Ending X coordinate in points',
             },
             y_end: {
               type: 'number',
-              description: 'End Y coordinate',
+              description: 'Ending Y coordinate in points',
             },
             duration: {
               type: 'number',
-              description: 'Swipe duration in seconds',
+              description: 'Swipe duration in seconds. Slower swipes feel more natural.',
             },
           },
           required: ['sessionId', 'x_start', 'y_start', 'x_end', 'y_end'],
@@ -263,13 +263,13 @@ export function registerTools(mcpServer: McpServer): void {
       },
       {
         name: 'ui_describe_all',
-        description: 'Get accessibility tree for the entire screen.',
+        description: 'Get the complete accessibility tree for everything currently visible on screen. Returns detailed information about all UI elements including labels, roles, positions, and hierarchy. Use this to understand the screen structure and find elements to interact with.',
         inputSchema: {
           type: 'object',
           properties: {
             sessionId: {
               type: 'string',
-              description: 'Session ID',
+              description: 'Session ID from session_start',
             },
           },
           required: ['sessionId'],
@@ -277,21 +277,21 @@ export function registerTools(mcpServer: McpServer): void {
       },
       {
         name: 'ui_describe_point',
-        description: 'Get accessibility information at a specific point on the screen.',
+        description: 'Get accessibility information for the specific UI element at given coordinates. Returns details about what element is at that position - useful for identifying buttons, labels, or interactive elements before tapping.',
         inputSchema: {
           type: 'object',
           properties: {
             sessionId: {
               type: 'string',
-              description: 'Session ID',
+              description: 'Session ID from session_start',
             },
             x: {
               type: 'number',
-              description: 'X coordinate',
+              description: 'X coordinate in points to inspect',
             },
             y: {
               type: 'number',
-              description: 'Y coordinate',
+              description: 'Y coordinate in points to inspect',
             },
           },
           required: ['sessionId', 'x', 'y'],
@@ -299,17 +299,17 @@ export function registerTools(mcpServer: McpServer): void {
       },
       {
         name: 'screenshot',
-        description: 'Take a screenshot of the simulator. Returns base64-encoded PNG image data in the response for use from Docker containers. Optional outputPath for local file save.',
+        description: 'Capture a screenshot of the current simulator screen. Returns the image directly in the response as PNG data - you will see the image automatically (no need to save to file). Essential for understanding what is currently displayed and identifying UI elements for interaction. Works seamlessly from Docker containers.',
         inputSchema: {
           type: 'object',
           properties: {
             sessionId: {
               type: 'string',
-              description: 'Session ID',
+              description: 'Session ID from session_start',
             },
             outputPath: {
               type: 'string',
-              description: 'Optional path where screenshot should be saved on host filesystem',
+              description: 'Optional: Path to also save screenshot on host filesystem (rarely needed)',
             },
           },
           required: ['sessionId'],

@@ -12,11 +12,11 @@ export class SessionManager {
 
     logger.info('Creating session', { worktreePath, deviceType });
 
-    // Validate worktree path exists and is a directory
+    // Validate project path exists and is a directory
     const resolvedPath = resolve(worktreePath);
     if (!existsSync(resolvedPath)) {
       throw new Error(
-        `Worktree path does not exist: ${worktreePath}. ` +
+        `Flutter project directory does not exist: ${worktreePath}. ` +
         'Ensure the path is correct and accessible.'
       );
     }
@@ -24,8 +24,8 @@ export class SessionManager {
     const stats = statSync(resolvedPath);
     if (!stats.isDirectory()) {
       throw new Error(
-        `Worktree path is not a directory: ${worktreePath}. ` +
-        'Provide a path to a directory containing a Flutter project.'
+        `Path is not a directory: ${worktreePath}. ` +
+        'Provide a path to a directory containing a Flutter project (with pubspec.yaml).'
       );
     }
 
