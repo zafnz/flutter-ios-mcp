@@ -34,12 +34,12 @@ Before first publish, update these fields in `package.json`:
   "author": "Nick Clifford <nick@nickclifford.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/zafnz/flutter-ios-mcp.git"
+    "url": "https://github.com/zafnz/docker-flutter-ios-simulator-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/zafnz/flutter-ios-mcp/issues"
+    "url": "https://github.com/zafnz/docker-flutter-ios-simulator-mcp/issues"
   },
-  "homepage": "https://github.com/zafnz/flutter-ios-mcp#readme"
+  "homepage": "https://github.com/zafnz/docker-flutter-ios-simulator-mcp#readme"
 }
 ```
 
@@ -72,8 +72,8 @@ Or create a tarball to inspect:
 
 ```bash
 npm pack
-tar -tzf flutter-ios-mcp-*.tgz
-rm flutter-ios-mcp-*.tgz
+tar -tzf docker-flutter-ios-simulator-mcp-*.tgz
+rm docker-flutter-ios-simulator-mcp-*.tgz
 ```
 
 ### Publish to npm
@@ -90,10 +90,10 @@ npm publish --access public
 
 ```bash
 # Check npm registry
-npm view flutter-ios-mcp
+npm view docker-flutter-ios-simulator-mcp
 
 # Test installation
-npx flutter-ios-mcp@latest --help
+npx docker-flutter-ios-simulator-mcp@latest --help
 ```
 
 ## Post-Publishing
@@ -107,7 +107,7 @@ git push origin v0.1.0
 
 ### Create GitHub Release
 
-1. Go to https://github.com/zafnz/flutter-ios-mcp/releases
+1. Go to https://github.com/zafnz/docker-flutter-ios-simulator-mcp/releases
 2. Click "Create a new release"
 3. Select the tag (v0.1.0)
 4. Add release notes from CHANGELOG
@@ -126,7 +126,7 @@ git push origin v0.1.0
 - [ ] Published to npm (`npm publish`)
 - [ ] Git tag created and pushed
 - [ ] GitHub release created
-- [ ] Verified with `npx flutter-ios-mcp@latest`
+- [ ] Verified with `npx docker-flutter-ios-simulator-mcp@latest`
 
 ## Troubleshooting
 
@@ -157,7 +157,7 @@ The package name is taken. Choose a different name or use a scoped package:
 You can unpublish within 72 hours, but it's discouraged:
 
 ```bash
-npm unpublish flutter-ios-mcp@0.1.0
+npm unpublish docker-flutter-ios-simulator-mcp@0.1.0
 ```
 
 Instead, publish a patch version with fixes.

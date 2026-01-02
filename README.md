@@ -1,4 +1,4 @@
-# flutter-ios-mcp
+# docker-flutter-ios-simulator-mcp
 
 **Model Context Protocol server for Flutter iOS development with AI agents**
 
@@ -65,7 +65,7 @@ Enables AI agents (like Claude) inside a Docker container to build, run, and int
 No installation needed! Run directly with npx:
 
 ```bash
-npx flutter-ios-mcp
+npx docker-flutter-ios-simulator-mcp
 # Server starts at http://localhost:3000/mcp
 ```
 
@@ -75,7 +75,7 @@ Clone and run from source:
 
 ```bash
 # Clone the repository
-git clone https://github.com/zafnz/flutter-ios-mcp.git
+git clone https://github.com/zafnz/docker-flutter-ios-simulator-mcp.git
 cd flutter-ios-mcp
 
 # Install dependencies
@@ -94,7 +94,7 @@ npm start
 ### 1. Start the MCP Server
 
 ```bash
-npx flutter-ios-mcp
+npx docker-flutter-ios-simulator-mcp
 ```
 
 The server will start on port 3000 by default.
@@ -210,28 +210,28 @@ OPTIONS:
 
 ```bash
 # Default (localhost only, /Users/ projects)
-npx flutter-ios-mcp
+npx docker-flutter-ios-simulator-mcp
 
 # Custom port
-npx flutter-ios-mcp --port 8080
+npx docker-flutter-ios-simulator-mcp --port 8080
 
 # Docker (bind to all interfaces)
-npx flutter-ios-mcp --host 0.0.0.0
+npx docker-flutter-ios-simulator-mcp --host 0.0.0.0
 
 # Restrict to specific directory
-npx flutter-ios-mcp --allow-only /Users/alice/flutter-projects
+npx docker-flutter-ios-simulator-mcp --allow-only /Users/alice/flutter-projects
 
 # Allow more concurrent sessions
-npx flutter-ios-mcp --max-sessions 20
+npx docker-flutter-ios-simulator-mcp --max-sessions 20
 
 # Run git pull before each build
-npx flutter-ios-mcp --pre-build-script "git pull"
+npx docker-flutter-ios-simulator-mcp --pre-build-script "git pull"
 
 # Run commands before and after builds
-npx flutter-ios-mcp --pre-build-script "git pull" --post-build-script "echo Build complete"
+npx docker-flutter-ios-simulator-mcp --pre-build-script "git pull" --post-build-script "echo Build complete"
 
 # Multiple options
-npx flutter-ios-mcp --port 8080 --host 0.0.0.0 --allow-only /Users/alice --max-sessions 15
+npx docker-flutter-ios-simulator-mcp --port 8080 --host 0.0.0.0 --allow-only /Users/alice --max-sessions 15
 ```
 
 ### Security
