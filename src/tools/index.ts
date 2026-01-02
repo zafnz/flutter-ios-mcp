@@ -439,7 +439,17 @@ export function registerTools(mcpServer: McpServer): void {
           const parsed = screenshotSchema.parse(args);
           const result = await handleScreenshot(parsed);
           return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+            content: [
+              {
+                type: 'image',
+                data: result.imageData,
+                mimeType: 'image/png',
+              },
+              {
+                type: 'text',
+                text: `Screenshot captured: ${result.path}\nSize: ${result.imageData.length} bytes (base64)`,
+              },
+            ],
           };
         }
 
