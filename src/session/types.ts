@@ -6,6 +6,7 @@ export interface Session {
   simulatorUdid: string;
   deviceType: string;
   createdAt: Date;
+  lastActivityAt: Date;
   flutterProcessManager?: FlutterProcessManager;
 }
 

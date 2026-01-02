@@ -48,6 +48,9 @@ export async function handleUiTap(
     throw new Error(`Session not found: ${args.sessionId}`);
   }
 
+  // Update session activity
+  sessionManager.updateSessionActivity(args.sessionId);
+
   await idb.tap(session.simulatorUdid, {
     x: args.x,
     y: args.y,
@@ -70,6 +73,9 @@ export async function handleUiType(
     throw new Error(`Session not found: ${args.sessionId}`);
   }
 
+  // Update session activity
+  sessionManager.updateSessionActivity(args.sessionId);
+
   await idb.typeText(session.simulatorUdid, args.text);
 
   return {
@@ -87,6 +93,9 @@ export async function handleUiSwipe(
   if (!session) {
     throw new Error(`Session not found: ${args.sessionId}`);
   }
+
+  // Update session activity
+  sessionManager.updateSessionActivity(args.sessionId);
 
   await idb.swipe(session.simulatorUdid, {
     x_start: args.x_start,
@@ -112,6 +121,9 @@ export async function handleUiDescribeAll(
     throw new Error(`Session not found: ${args.sessionId}`);
   }
 
+  // Update session activity
+  sessionManager.updateSessionActivity(args.sessionId);
+
   const tree = await idb.describeAll(session.simulatorUdid);
 
   return {
@@ -129,6 +141,9 @@ export async function handleUiDescribePoint(
     throw new Error(`Session not found: ${args.sessionId}`);
   }
 
+  // Update session activity
+  sessionManager.updateSessionActivity(args.sessionId);
+
   const info = await idb.describePoint(session.simulatorUdid, args.x, args.y);
 
   return {
@@ -140,7 +155,6 @@ export async function handleScreenshot(
   args: z.infer<typeof screenshotSchema>
 ): Promise<{
   success: boolean;
-  path: string;
   imageData: string;
   format: string;
   message: string;
@@ -152,11 +166,13 @@ export async function handleScreenshot(
     throw new Error(`Session not found: ${args.sessionId}`);
   }
 
+  // Update session activity
+  sessionManager.updateSessionActivity(args.sessionId);
+
   const result = await idb.screenshot(session.simulatorUdid);
 
   return {
     success: true,
-    path: result.path,
     imageData: result.imageData,
     format: result.format,
     message: `Screenshot captured (${String(result.imageData.length)} bytes base64)`,

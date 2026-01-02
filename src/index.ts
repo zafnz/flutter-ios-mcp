@@ -10,7 +10,9 @@ interface CliArgs {
   host: string;
   help: boolean;
   allowOnly: string;
+  basePath?: string;
   maxSessions: number;
+  sessionTimeout?: number;
   preBuildScript?: string;
   postBuildScript?: string;
 }
@@ -21,7 +23,11 @@ function parseArgs(): CliArgs {
   let host = process.env.HOST || '127.0.0.1';
   let help = false;
   let allowOnly = process.env.ALLOW_ONLY || '/Users/';
+  let basePath: string | undefined = process.env.BASE_PATH;
   let maxSessions = parseInt(process.env.MAX_SESSIONS || '10', 10);
+  let sessionTimeout: number | undefined = process.env.SESSION_TIMEOUT
+    ? parseInt(process.env.SESSION_TIMEOUT, 10)
+    : undefined;
   let preBuildScript: string | undefined = process.env.PRE_BUILD_SCRIPT;
   let postBuildScript: string | undefined = process.env.POST_BUILD_SCRIPT;
 
@@ -51,6 +57,13 @@ function parseArgs(): CliArgs {
         process.exit(1);
       }
       allowOnly = pathValue;
+    } else if (arg === '--base-path') {
+      const pathValue = args[++i];
+      if (!pathValue) {
+        console.error('Error: --base-path requires a path value');
+        process.exit(1);
+      }
+      basePath = pathValue;
     } else if (arg === '--max-sessions') {
       const maxValue = args[++i];
       if (!maxValue || isNaN(parseInt(maxValue, 10))) {
@@ -60,6 +73,17 @@ function parseArgs(): CliArgs {
       maxSessions = parseInt(maxValue, 10);
       if (maxSessions < 1) {
         console.error('Error: --max-sessions must be at least 1');
+        process.exit(1);
+      }
+    } else if (arg === '--session-timeout') {
+      const timeoutValue = args[++i];
+      if (!timeoutValue || isNaN(parseInt(timeoutValue, 10))) {
+        console.error('Error: --session-timeout requires a numeric value (minutes)');
+        process.exit(1);
+      }
+      sessionTimeout = parseInt(timeoutValue, 10);
+      if (sessionTimeout < 1) {
+        console.error('Error: --session-timeout must be at least 1 minute');
         process.exit(1);
       }
     } else if (arg === '--pre-build-script') {
@@ -83,7 +107,7 @@ function parseArgs(): CliArgs {
     }
   }
 
-  return { port, host, help, allowOnly, maxSessions, preBuildScript, postBuildScript };
+  return { port, host, help, allowOnly, basePath, maxSessions, sessionTimeout, preBuildScript, postBuildScript };
 }
 
 function showHelp(): void {
@@ -97,7 +121,9 @@ OPTIONS:
   -p, --port <port>              Port to listen on (default: 3000)
       --host <host>              Host address to bind to (default: 127.0.0.1)
       --allow-only <path>        Only allow Flutter projects under this path (default: /Users/)
+      --base-path <path>         Base path for relative worktree paths (optional)
       --max-sessions <number>    Maximum number of concurrent sessions (default: 10)
+      --session-timeout <mins>   Terminate inactive sessions after N minutes (optional)
       --pre-build-script <cmd>   Command to run before flutter build/run (e.g., "git pull")
       --post-build-script <cmd>  Command to run after flutter build/run completes
   -h, --help                     Show this help message
@@ -106,7 +132,9 @@ ENVIRONMENT VARIABLES:
   PORT                      Port to listen on (overridden by --port)
   HOST                      Host address to bind to (overridden by --host)
   ALLOW_ONLY                Path prefix for allowed projects (overridden by --allow-only)
+  BASE_PATH                 Base path for relative worktree paths (overridden by --base-path)
   MAX_SESSIONS              Maximum concurrent sessions (overridden by --max-sessions)
+  SESSION_TIMEOUT           Terminate inactive sessions after N minutes (overridden by --session-timeout)
   PRE_BUILD_SCRIPT          Command to run before builds (overridden by --pre-build-script)
   POST_BUILD_SCRIPT         Command to run after builds (overridden by --post-build-script)
   LOG_LEVEL                 Logging level (debug, info, warn, error)
@@ -116,7 +144,9 @@ EXAMPLES:
   docker-flutter-ios-simulator-mcp --port 8080
   docker-flutter-ios-simulator-mcp --port 3000 --host localhost
   docker-flutter-ios-simulator-mcp --allow-only /Users/alice/projects
+  docker-flutter-ios-simulator-mcp --base-path /Users/alice/projects
   docker-flutter-ios-simulator-mcp --max-sessions 20
+  docker-flutter-ios-simulator-mcp --session-timeout 30
   docker-flutter-ios-simulator-mcp --pre-build-script "git pull" --post-build-script "echo Done"
   PORT=8080 docker-flutter-ios-simulator-mcp
 
@@ -129,7 +159,7 @@ For more information, visit: https://github.com/zafnz/docker-flutter-ios-simulat
 }
 
 async function main(): Promise<void> {
-  const { port, host, help, allowOnly, maxSessions, preBuildScript, postBuildScript } = parseArgs();
+  const { port, host, help, allowOnly, basePath, maxSessions, sessionTimeout, preBuildScript, postBuildScript } = parseArgs();
 
   if (help) {
     showHelp();
@@ -137,7 +167,7 @@ async function main(): Promise<void> {
   }
 
   // Configure session manager with allowed path prefix and session limit
-  sessionManager.configure(allowOnly, maxSessions, preBuildScript, postBuildScript);
+  sessionManager.configure(allowOnly, maxSessions, preBuildScript, postBuildScript, basePath, sessionTimeout);
 
   const PORT = port;
   const HOST = host;

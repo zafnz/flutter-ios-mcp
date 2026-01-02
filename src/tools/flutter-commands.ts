@@ -71,6 +71,9 @@ export async function handleFlutterRun(
     throw new Error(`Session not found: ${args.sessionId}`);
   }
 
+  // Update session activity
+  sessionManager.updateSessionActivity(args.sessionId);
+
   if (session.flutterProcessManager) {
     const status = session.flutterProcessManager.getStatus();
     if (status && (status.status === 'running' || status.status === 'starting')) {
@@ -123,6 +126,9 @@ export function handleFlutterStop(
     throw new Error(`Session not found: ${args.sessionId}`);
   }
 
+  // Update session activity
+  sessionManager.updateSessionActivity(args.sessionId);
+
   if (!session.flutterProcessManager) {
     throw new Error('No Flutter process running for this session');
   }
@@ -147,6 +153,9 @@ export function handleFlutterHotReload(
   if (!session) {
     throw new Error(`Session not found: ${args.sessionId}`);
   }
+
+  // Update session activity
+  sessionManager.updateSessionActivity(args.sessionId);
 
   if (!session.flutterProcessManager) {
     throw new Error('No Flutter process running for this session');
@@ -173,6 +182,9 @@ export function handleFlutterHotRestart(
     throw new Error(`Session not found: ${args.sessionId}`);
   }
 
+  // Update session activity
+  sessionManager.updateSessionActivity(args.sessionId);
+
   if (!session.flutterProcessManager) {
     throw new Error('No Flutter process running for this session');
   }
@@ -198,6 +210,9 @@ export function handleFlutterLogs(
   if (!session) {
     throw new Error(`Session not found: ${args.sessionId}`);
   }
+
+  // Update session activity
+  sessionManager.updateSessionActivity(args.sessionId);
 
   if (!session.flutterProcessManager) {
     return {
@@ -254,6 +269,9 @@ export async function handleFlutterBuild(
   if (!session) {
     throw new Error(`Session not found: ${args.sessionId}`);
   }
+
+  // Update session activity
+  sessionManager.updateSessionActivity(args.sessionId);
 
   // Execute pre-build script if configured
   const preBuildScript = sessionManager.getPreBuildScript();
@@ -316,6 +334,9 @@ export async function handleFlutterTest(
     throw new Error(`Session not found: ${args.sessionId}`);
   }
 
+  // Update session activity
+  sessionManager.updateSessionActivity(args.sessionId);
+
   const testArgs = ['test'];
 
   if (args.path) {
@@ -365,6 +386,9 @@ export async function handleFlutterClean(
   if (!session) {
     throw new Error(`Session not found: ${args.sessionId}`);
   }
+
+  // Update session activity
+  sessionManager.updateSessionActivity(args.sessionId);
 
   logger.info('Running flutter clean', { cwd: session.worktreePath });
 

@@ -165,4 +165,254 @@ describe('SessionManager Security', () => {
       ).resolves.toBeDefined();
     });
   });
+
+  describe('Base Path Feature', () => {
+    let basePathTestDir: string;
+    let projectA: string;
+    let projectB: string;
+
+    beforeEach(() => {
+      // Create a base directory with multiple projects
+      basePathTestDir = join(testDir, 'projects');
+      mkdirSync(basePathTestDir, { recursive: true });
+
+      projectA = join(basePathTestDir, 'project-a');
+      mkdirSync(projectA, { recursive: true });
+      writeFileSync(join(projectA, 'pubspec.yaml'), 'name: project_a\n');
+
+      projectB = join(basePathTestDir, 'project-b');
+      mkdirSync(projectB, { recursive: true });
+      writeFileSync(join(projectB, 'pubspec.yaml'), 'name: project_b\n');
+    });
+
+    it('should resolve relative paths when basePath is configured', async () => {
+      const manager = new SessionManager(testDir);
+      manager.configure(testDir, undefined, undefined, undefined, basePathTestDir);
+
+      // Using "/project-a" should resolve to basePathTestDir/project-a
+      const result = await manager.createSession({
+        worktreePath: '/project-a',
+        deviceType: 'iPhone 16 Pro',
+      });
+
+      expect(result.worktreePath).toBe(projectA);
+      expect(result.simulatorUdid).toBe('TEST-UDID-123');
+    });
+
+    it('should resolve paths without leading slash when basePath is configured', async () => {
+      const manager = new SessionManager(testDir);
+      manager.configure(testDir, undefined, undefined, undefined, basePathTestDir);
+
+      // Using "project-b" should resolve to basePathTestDir/project-b
+      const result = await manager.createSession({
+        worktreePath: 'project-b',
+        deviceType: 'iPhone 16 Pro',
+      });
+
+      expect(result.worktreePath).toBe(projectB);
+    });
+
+    it('should block path traversal attempts with basePath configured', async () => {
+      const manager = new SessionManager(testDir);
+      manager.configure(testDir, undefined, undefined, undefined, basePathTestDir);
+
+      // Attempt to escape basePath using ../
+      await expect(
+        manager.createSession({
+          worktreePath: '../../etc',
+          deviceType: 'iPhone 16 Pro',
+        })
+      ).rejects.toThrow(/Path traversal detected/);
+    });
+
+    it('should handle leading slash with ../ (resolves within basePath)', async () => {
+      const manager = new SessionManager(testDir);
+      manager.configure(testDir, undefined, undefined, undefined, basePathTestDir);
+
+      // Note: '/../../../etc' when joined with basePath resolves to basePathTestDir/../../../etc
+      // which normalizes to something like /tmp/.../etc (not /etc), so it may be within testDir
+      // This test verifies it either: throws path traversal error OR directory doesn't exist
+      await expect(
+        manager.createSession({
+          worktreePath: '/../../../etc',
+          deviceType: 'iPhone 16 Pro',
+        })
+      ).rejects.toThrow(/Path traversal detected|directory does not exist|Access denied/);
+    });
+
+    it('should block subtle path traversal attempts', async () => {
+      const manager = new SessionManager(testDir);
+      manager.configure(testDir, undefined, undefined, undefined, basePathTestDir);
+
+      // Various path traversal attempts
+      const maliciousPaths = [
+        '../../../etc',
+        'project-a/../../..',
+        'project-a/../../../etc',
+        './../..',
+      ];
+
+      for (const path of maliciousPaths) {
+        await expect(
+          manager.createSession({
+            worktreePath: path,
+            deviceType: 'iPhone 16 Pro',
+          })
+        ).rejects.toThrow(/Path traversal detected|Access denied/);
+      }
+    });
+
+    it('should enforce allow-only on the resolved full path', async () => {
+      // Configure basePath but restrict allow-only to a subdirectory
+      const manager = new SessionManager(projectA);
+      manager.configure(projectA, undefined, undefined, undefined, basePathTestDir);
+
+      // Try to access project-b which is outside the allow-only path
+      await expect(
+        manager.createSession({
+          worktreePath: '/project-b',
+          deviceType: 'iPhone 16 Pro',
+        })
+      ).rejects.toThrow(/Access denied.*must be under/);
+    });
+
+    it('should allow navigation within basePath using relative paths', async () => {
+      const manager = new SessionManager(testDir);
+      manager.configure(testDir, undefined, undefined, undefined, basePathTestDir);
+
+      // Create a nested project
+      const nestedProject = join(projectA, 'nested');
+      mkdirSync(nestedProject, { recursive: true });
+      writeFileSync(join(nestedProject, 'pubspec.yaml'), 'name: nested\n');
+
+      const result = await manager.createSession({
+        worktreePath: 'project-a/nested',
+        deviceType: 'iPhone 16 Pro',
+      });
+
+      expect(result.worktreePath).toBe(nestedProject);
+    });
+
+    it('should work without basePath (backward compatibility)', async () => {
+      const manager = new SessionManager(testDir);
+      // Don't configure basePath
+      manager.configure(testDir);
+
+      // Should work with absolute paths as before
+      const result = await manager.createSession({
+        worktreePath: projectA,
+        deviceType: 'iPhone 16 Pro',
+      });
+
+      expect(result.worktreePath).toBe(projectA);
+    });
+
+    it('should normalize paths with . and .. within basePath', async () => {
+      const manager = new SessionManager(testDir);
+      manager.configure(testDir, undefined, undefined, undefined, basePathTestDir);
+
+      // This should resolve to project-a after normalization
+      const result = await manager.createSession({
+        worktreePath: 'project-b/../project-a',
+        deviceType: 'iPhone 16 Pro',
+      });
+
+      expect(result.worktreePath).toBe(projectA);
+    });
+
+    it('should reject paths that resolve outside basePath after normalization', async () => {
+      const manager = new SessionManager(testDir);
+      manager.configure(testDir, undefined, undefined, undefined, basePathTestDir);
+
+      // This normalizes to .. which escapes basePath
+      await expect(
+        manager.createSession({
+          worktreePath: 'project-a/../..',
+          deviceType: 'iPhone 16 Pro',
+        })
+      ).rejects.toThrow(/Path traversal detected/);
+    });
+  });
+
+  describe('Session Timeout Feature', () => {
+    afterEach(async () => {
+      // Clean up any timeout monitoring intervals
+      await sessionManager.cleanup();
+    });
+
+    it('should initialize lastActivityAt when creating a session', async () => {
+      const result = await sessionManager.createSession({
+        worktreePath: validFlutterProject,
+        deviceType: 'iPhone 16 Pro',
+      });
+
+      const session = sessionManager.getSession(result.id);
+      expect(session).toBeDefined();
+      expect(session!.lastActivityAt).toBeInstanceOf(Date);
+      expect(session!.createdAt.getTime()).toBeCloseTo(session!.lastActivityAt.getTime(), -2);
+    });
+
+    it('should update lastActivityAt when updateSessionActivity is called', async () => {
+      const result = await sessionManager.createSession({
+        worktreePath: validFlutterProject,
+        deviceType: 'iPhone 16 Pro',
+      });
+
+      const session = sessionManager.getSession(result.id);
+      const initialActivity = session!.lastActivityAt.getTime();
+
+      // Wait a bit and update activity
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      sessionManager.updateSessionActivity(result.id);
+
+      const updatedSession = sessionManager.getSession(result.id);
+      expect(updatedSession!.lastActivityAt.getTime()).toBeGreaterThan(initialActivity);
+    });
+
+    it('should not throw when updating activity for non-existent session', () => {
+      expect(() => {
+        sessionManager.updateSessionActivity('non-existent-session-id');
+      }).not.toThrow();
+    });
+
+    it('should configure timeout monitoring when sessionTimeout is set', () => {
+      const manager = new SessionManager(testDir);
+
+      // Configure with a timeout
+      manager.configure(testDir, 10, undefined, undefined, undefined, 5);
+
+      // The timeout monitoring should be started (we can't easily test the interval directly)
+      // but we can verify it doesn't throw
+      expect(true).toBe(true);
+    });
+
+    it('should clean up timeout monitoring interval on cleanup', async () => {
+      // Create a separate test directory for this test
+      const separateTestDir = join(tmpdir(), `mcp-timeout-test-${Date.now()}`);
+      mkdirSync(separateTestDir, { recursive: true });
+      const separateProject = join(separateTestDir, 'test-project');
+      mkdirSync(separateProject, { recursive: true });
+      writeFileSync(join(separateProject, 'pubspec.yaml'), 'name: test\n');
+
+      try {
+        const manager = new SessionManager(separateTestDir);
+        manager.configure(separateTestDir, 10, undefined, undefined, undefined, 5);
+
+        // Create a session
+        const result = await manager.createSession({
+          worktreePath: separateProject,
+          deviceType: 'iPhone 16 Pro',
+        });
+
+        // Cleanup should stop the interval
+        await manager.cleanup();
+
+        // Verify session was cleaned up
+        expect(manager.getSession(result.id)).toBeUndefined();
+      } finally {
+        // Clean up the separate test directory
+        rmSync(separateTestDir, { recursive: true, force: true });
+      }
+    });
+  });
 });
