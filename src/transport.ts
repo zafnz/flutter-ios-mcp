@@ -1,6 +1,7 @@
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { Express } from 'express';
 import { logger } from './utils/logger.js';
+import { updateHostHeader } from './config.js';
 
 export function setupTransport(app: Express): StreamableHTTPServerTransport {
   logger.debug('Setting up Streamable HTTP transport');
@@ -10,6 +11,11 @@ export function setupTransport(app: Express): StreamableHTTPServerTransport {
   });
 
   app.post('/mcp', (req, res) => {
+    // Capture the Host header to construct correct URLs for screenshots
+    const hostHeader = req.get('host');
+    if (hostHeader) {
+      updateHostHeader(hostHeader);
+    }
     void transport.handleRequest(req, res, req.body);
   });
 

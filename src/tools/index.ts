@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { getServerBaseUrl } from '../config.js';
 import {
   sessionStartSchema,
   sessionEndSchema,
@@ -527,6 +528,8 @@ export function registerTools(mcpServer: McpServer): void {
         case 'screenshot': {
           const parsed = screenshotSchema.parse(args);
           const result = await handleScreenshot(parsed);
+          const baseUrl = getServerBaseUrl();
+          const screenshotUrl = `${baseUrl}/screenshot/${result.filename}`;
           return {
             content: [
               {
@@ -536,7 +539,7 @@ export function registerTools(mcpServer: McpServer): void {
               },
               {
                 type: 'text',
-                text: `Screenshot captured\nSize: ${String(result.imageData.length)} bytes (base64)`,
+                text: `Screenshot captured\nSize: ${String(result.imageData.length)} bytes (base64)\nURL: ${screenshotUrl}`,
               },
             ],
           };

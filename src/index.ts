@@ -4,6 +4,9 @@ import { createMCPServer } from './server.js';
 import { setupTransport } from './transport.js';
 import { sessionManager } from './session/manager.js';
 import { logger } from './utils/logger.js';
+import { setServerConfig } from './config.js';
+import { tmpdir } from 'os';
+import { join } from 'path';
 
 interface CliArgs {
   port: number;
@@ -201,10 +204,37 @@ async function main(): Promise<void> {
     next(err);
   });
 
+  // Set server configuration for screenshot URLs
+  setServerConfig(HOST, PORT);
+
   const mcpServer = createMCPServer();
   const transport = setupTransport(app);
 
   await mcpServer.connect(transport);
+
+  // Screenshot endpoint - serve screenshot files
+  app.get('/screenshot/:filename', (req, res) => {
+    const { filename } = req.params;
+
+    // Security: only allow alphanumeric, hyphens, and .png extension
+    if (!/^[a-zA-Z0-9-]+\.png$/.test(filename)) {
+      logger.warn('Invalid screenshot filename requested', { filename });
+      res.status(400).json({ error: 'Invalid filename' });
+      return;
+    }
+
+    const screenshotsDir = join(tmpdir(), 'mcp-screenshots');
+    const filepath = join(screenshotsDir, filename);
+
+    logger.info('Serving screenshot', { filename, filepath });
+
+    res.sendFile(filepath, (err: Error | null | undefined) => {
+      if (err) {
+        logger.error('Error serving screenshot', { filename, error: String(err) });
+        res.status(404).json({ error: 'Screenshot not found' });
+      }
+    });
+  });
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

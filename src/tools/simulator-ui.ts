@@ -2,6 +2,9 @@ import { z } from 'zod';
 import { sessionManager } from '../session/manager.js';
 import * as idb from '../simulator/idb.js';
 import { logger } from '../utils/logger.js';
+import { mkdirSync, writeFileSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 export const uiTapSchema = z.object({
   sessionId: z.string().describe('Session ID'),
@@ -37,6 +40,17 @@ export const uiDescribePointSchema = z.object({
 export const screenshotSchema = z.object({
   sessionId: z.string().describe('Session ID'),
 });
+
+// Get screenshots directory and ensure it exists
+function getScreenshotsDir(): string {
+  const screenshotsDir = join(tmpdir(), 'mcp-screenshots');
+  try {
+    mkdirSync(screenshotsDir, { recursive: true });
+  } catch {
+    // Directory might already exist, that's fine
+  }
+  return screenshotsDir;
+}
 
 export async function handleUiTap(
   args: z.infer<typeof uiTapSchema>
@@ -157,6 +171,7 @@ export async function handleScreenshot(
   success: boolean;
   imageData: string;
   format: string;
+  filename: string;
   message: string;
 }> {
   logger.info('Tool: screenshot', args);
@@ -171,10 +186,23 @@ export async function handleScreenshot(
 
   const result = await idb.screenshot(session.simulatorUdid);
 
+  // Save screenshot to disk
+  const screenshotsDir = getScreenshotsDir();
+  const timestamp = Date.now();
+  const filename = `${args.sessionId}-${String(timestamp)}.png`;
+  const filepath = join(screenshotsDir, filename);
+
+  // Convert base64 to buffer and write to file
+  const imageBuffer = Buffer.from(result.imageData, 'base64');
+  writeFileSync(filepath, imageBuffer);
+
+  logger.info('Screenshot saved', { filepath, size: imageBuffer.length });
+
   return {
     success: true,
     imageData: result.imageData,
     format: result.format,
+    filename,
     message: `Screenshot captured (${String(result.imageData.length)} bytes base64)`,
   };
 }
