@@ -251,7 +251,7 @@ export function registerTools(mcpServer: McpServer): void {
       {
         name: 'flutter_test_results',
         description:
-          'Get the current progress and results of a test run started with flutter_test. Returns number of tests completed, passed, failed, and whether the run is complete. Use showAllTestNames=true to get arrays of all passing and failing test names. Poll this endpoint to monitor long-running test suites.',
+          'Get the current progress and results of a test run started with flutter_test. Returns number of tests completed, passed, failed, and whether the run is complete. Use showAllTestNames=true to get paginated arrays of passing and failing test names (default 100 per page). Returns totalPassingTests, totalFailingTests, hasMorePassing, and hasMoreFailing to help with pagination. Poll this endpoint to monitor long-running test suites.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -261,7 +261,15 @@ export function registerTools(mcpServer: McpServer): void {
             },
             showAllTestNames: {
               type: 'boolean',
-              description: 'If true, include arrays of all passing and failing test names in the response (default: false)',
+              description: 'If true, include paginated arrays of passing and failing test names (default: false)',
+            },
+            offset: {
+              type: 'number',
+              description: 'Starting index for paginated test names (default: 0)',
+            },
+            limit: {
+              type: 'number',
+              description: 'Maximum number of test names to return per page (default: 100)',
             },
           },
           required: ['reference'],
@@ -270,7 +278,7 @@ export function registerTools(mcpServer: McpServer): void {
       {
         name: 'flutter_test_logs',
         description:
-          'Retrieve detailed logs from a test run. By default returns only failing test logs (failures and errors). Set showAll=true to get logs for all tests including passes. Each log entry contains the test name and its complete output (error messages, stack traces, print statements).',
+          'Retrieve detailed logs from a test run. By default returns only failing test logs (failures and errors), paginated with 100 entries per page. Set showAll=true to get logs for all tests including passes. Each log entry contains the test name and its complete output (error messages, stack traces, print statements). Use offset and limit to iterate through large result sets.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -281,6 +289,14 @@ export function registerTools(mcpServer: McpServer): void {
             showAll: {
               type: 'boolean',
               description: 'If true, show logs for all tests. If false (default), show only failing test logs.',
+            },
+            offset: {
+              type: 'number',
+              description: 'Starting index for paginated logs (default: 0)',
+            },
+            limit: {
+              type: 'number',
+              description: 'Maximum number of log entries to return (default: 100)',
             },
           },
           required: ['reference'],

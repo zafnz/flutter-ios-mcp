@@ -19,7 +19,15 @@ export const flutterTestResultsSchema = z.object({
   showAllTestNames: z
     .boolean()
     .optional()
-    .describe('Include arrays of all passing and failing test names'),
+    .describe('Include arrays of passing and failing test names (paginated)'),
+  offset: z
+    .number()
+    .optional()
+    .describe('Starting index for paginated test names (default: 0)'),
+  limit: z
+    .number()
+    .optional()
+    .describe('Maximum number of test names to return per page (default: 100)'),
 });
 
 export const flutterTestLogsSchema = z.object({
@@ -28,6 +36,14 @@ export const flutterTestLogsSchema = z.object({
     .boolean()
     .optional()
     .describe('Show all test logs (default: false, shows only failures)'),
+  offset: z
+    .number()
+    .optional()
+    .describe('Starting index for paginated logs (default: 0)'),
+  limit: z
+    .number()
+    .optional()
+    .describe('Maximum number of log entries to return (default: 100)'),
 });
 
 // Tool handlers
@@ -92,7 +108,15 @@ export function handleFlutterTestResults(
     throw new Error(`Test reference not found: ${String(args.reference)}`);
   }
 
-  const progress = testManager.getProgress(args.reference, args.showAllTestNames ?? false);
+  const offset = args.offset ?? 0;
+  const limit = args.limit ?? 100;
+
+  const progress = testManager.getProgress(
+    args.reference,
+    args.showAllTestNames ?? false,
+    offset,
+    limit
+  );
   if (!progress) {
     throw new Error(`Test reference not found: ${String(args.reference)}`);
   }
@@ -107,6 +131,10 @@ export function handleFlutterTestResults(
     complete: boolean;
     passingTests?: string[];
     failingTests?: string[];
+    totalPassingTests?: number;
+    totalFailingTests?: number;
+    hasMorePassing?: boolean;
+    hasMoreFailing?: boolean;
   } = {
     reference: progress.reference,
     tests_complete: progress.testsComplete,
@@ -119,6 +147,10 @@ export function handleFlutterTestResults(
   if (args.showAllTestNames) {
     result.passingTests = progress.passingTests;
     result.failingTests = progress.failingTests;
+    result.totalPassingTests = progress.totalPassingTests;
+    result.totalFailingTests = progress.totalFailingTests;
+    result.hasMorePassing = progress.hasMorePassing;
+    result.hasMoreFailing = progress.hasMoreFailing;
   }
 
   return result;
@@ -147,7 +179,10 @@ export function handleFlutterTestLogs(
     throw new Error(`Test reference not found: ${String(args.reference)}`);
   }
 
-  const logs = testManager.getLogs(args.reference, args.showAll ?? false);
+  const offset = args.offset ?? 0;
+  const limit = args.limit ?? 100;
+
+  const logs = testManager.getLogs(args.reference, args.showAll ?? false, offset, limit);
 
   // Map to snake_case as per spec
   return logs.map((log) => ({

@@ -234,7 +234,12 @@ export class FlutterTestManager {
     this.process = undefined;
   }
 
-  getProgress(reference: number, showAllTestNames = false): FlutterTestProgress | null {
+  getProgress(
+    reference: number,
+    showAllTestNames = false,
+    offset = 0,
+    limit = 100
+  ): FlutterTestProgress | null {
     const state = this.testStates.get(reference);
     if (!state) {
       return null;
@@ -257,19 +262,27 @@ export class FlutterTestManager {
     };
 
     if (showAllTestNames) {
-      progress.passingTests = visibleTests
+      const passingTests = visibleTests
         .filter((t) => t.result === 'success' && !t.skipped)
         .map((t) => t.testName);
 
-      progress.failingTests = visibleTests
+      const failingTests = visibleTests
         .filter((t) => (t.result === 'failure' || t.result === 'error') && !t.skipped)
         .map((t) => t.testName);
+
+      // Apply pagination
+      progress.passingTests = passingTests.slice(offset, offset + limit);
+      progress.failingTests = failingTests.slice(offset, offset + limit);
+      progress.totalPassingTests = passingTests.length;
+      progress.totalFailingTests = failingTests.length;
+      progress.hasMorePassing = offset + limit < passingTests.length;
+      progress.hasMoreFailing = offset + limit < failingTests.length;
     }
 
     return progress;
   }
 
-  getLogs(reference: number, showAll = false): FlutterTestLog[] {
+  getLogs(reference: number, showAll = false, offset = 0, limit = 100): FlutterTestLog[] {
     const state = this.testStates.get(reference);
     if (!state) {
       return [];
@@ -281,10 +294,13 @@ export class FlutterTestManager {
       ? visibleTests
       : visibleTests.filter((t) => t.result === 'failure' || t.result === 'error');
 
-    return testsToShow.map((test) => ({
+    const logs = testsToShow.map((test) => ({
       testName: test.testName,
       output: test.output.join('\n'),
     }));
+
+    // Apply pagination
+    return logs.slice(offset, offset + limit);
   }
 
   cleanup(reference?: number): void {

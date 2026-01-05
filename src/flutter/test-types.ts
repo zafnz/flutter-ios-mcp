@@ -79,6 +79,10 @@ export interface FlutterTestProgress {
   complete: boolean;
   passingTests?: string[];
   failingTests?: string[];
+  totalPassingTests?: number;
+  totalFailingTests?: number;
+  hasMorePassing?: boolean;
+  hasMoreFailing?: boolean;
 }
 
 export interface FlutterTestLog {
