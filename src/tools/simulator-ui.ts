@@ -62,6 +62,13 @@ export async function handleUiTap(
     throw new Error(`Session not found: ${args.sessionId}`);
   }
 
+  if (!session.simulatorUdid) {
+    throw new Error(
+      `No simulator started for session ${args.sessionId}. ` +
+      `Call start_simulator or flutter_run first.`
+    );
+  }
+
   // Update session activity
   sessionManager.updateSessionActivity(args.sessionId);
 
@@ -87,6 +94,13 @@ export async function handleUiType(
     throw new Error(`Session not found: ${args.sessionId}`);
   }
 
+  if (!session.simulatorUdid) {
+    throw new Error(
+      `No simulator started for session ${args.sessionId}. ` +
+      `Call start_simulator or flutter_run first.`
+    );
+  }
+
   // Update session activity
   sessionManager.updateSessionActivity(args.sessionId);
 
@@ -106,6 +120,13 @@ export async function handleUiSwipe(
   const session = sessionManager.getSession(args.sessionId);
   if (!session) {
     throw new Error(`Session not found: ${args.sessionId}`);
+  }
+
+  if (!session.simulatorUdid) {
+    throw new Error(
+      `No simulator started for session ${args.sessionId}. ` +
+      `Call start_simulator or flutter_run first.`
+    );
   }
 
   // Update session activity
@@ -135,6 +156,13 @@ export async function handleUiDescribeAll(
     throw new Error(`Session not found: ${args.sessionId}`);
   }
 
+  if (!session.simulatorUdid) {
+    throw new Error(
+      `No simulator started for session ${args.sessionId}. ` +
+      `Call start_simulator or flutter_run first.`
+    );
+  }
+
   // Update session activity
   sessionManager.updateSessionActivity(args.sessionId);
 
@@ -153,6 +181,13 @@ export async function handleUiDescribePoint(
   const session = sessionManager.getSession(args.sessionId);
   if (!session) {
     throw new Error(`Session not found: ${args.sessionId}`);
+  }
+
+  if (!session.simulatorUdid) {
+    throw new Error(
+      `No simulator started for session ${args.sessionId}. ` +
+      `Call start_simulator or flutter_run first.`
+    );
   }
 
   // Update session activity
@@ -179,6 +214,13 @@ export async function handleScreenshot(
   const session = sessionManager.getSession(args.sessionId);
   if (!session) {
     throw new Error(`Session not found: ${args.sessionId}`);
+  }
+
+  if (!session.simulatorUdid) {
+    throw new Error(
+      `No simulator started for session ${args.sessionId}. ` +
+      `Call start_simulator or flutter_run first.`
+    );
   }
 
   // Update session activity

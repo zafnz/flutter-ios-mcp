@@ -14,11 +14,14 @@ export const sessionEndSchema = z.object({
   sessionId: z.string().describe('Session ID to end'),
 });
 
+export const startSimulatorSchema = z.object({
+  sessionId: z.string().describe('Session ID'),
+});
+
 export async function handleSessionStart(
   args: z.infer<typeof sessionStartSchema>
 ): Promise<{
   sessionId: string;
-  simulatorUdid: string;
   deviceType: string;
   worktreePath: string;
 }> {
@@ -31,7 +34,6 @@ export async function handleSessionStart(
 
   return {
     sessionId: session.id,
-    simulatorUdid: session.simulatorUdid,
     deviceType: session.deviceType,
     worktreePath: session.worktreePath,
   };
@@ -50,11 +52,25 @@ export async function handleSessionEnd(
   };
 }
 
+export async function handleStartSimulator(
+  args: z.infer<typeof startSimulatorSchema>
+): Promise<{ simulatorUdid: string; deviceType: string; message: string }> {
+  logger.info('Tool: start_simulator', args);
+
+  const result = await sessionManager.startSimulator(args.sessionId);
+
+  return {
+    simulatorUdid: result.simulatorUdid,
+    deviceType: result.deviceType,
+    message: `Simulator ${result.simulatorUdid} started for ${result.deviceType}`,
+  };
+}
+
 export function handleSessionList(): {
   sessions: Array<{
     id: string;
     worktreePath: string;
-    simulatorUdid: string;
+    simulatorUdid?: string;
     deviceType: string;
     createdAt: string;
   }>;

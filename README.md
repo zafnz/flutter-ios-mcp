@@ -167,7 +167,8 @@ claude mcp add docker-flutter-ios-simulator-mcp http://host.docker.internal:3000
 The MCP server provides these tools to AI agents:
 
 **Session Management:**
-- `session_start` - Create a new development session with a simulator
+- `session_start` - Create a new development session (simulator starts on first flutter_run or explicit start_simulator)
+- `start_simulator` - Explicitly start an iOS simulator for a session
 - `session_end` - Clean up and delete the simulator
 - `session_list` - View active sessions
 
@@ -202,10 +203,16 @@ session_start({
   worktreePath: "/path/to/your/flutter/project",
   deviceType: "iPhone 16 Pro"
 })
-// Returns: { sessionId: "abc-123", simulatorUdid: "..." }
+// Returns: { sessionId: "abc-123", deviceType: "iPhone 16 Pro", worktreePath: "..." }
+// Note: Simulator is NOT started yet - starts automatically when you call flutter_run
 
-// 2. Run the Flutter app
+// 2. Run the Flutter app (automatically starts simulator if not already started)
 flutter_run({ sessionId: "abc-123" })
+// Simulator boots automatically on first flutter_run
+
+// Alternative: Explicitly start simulator before running Flutter
+// start_simulator({ sessionId: "abc-123" })
+// Returns: { simulatorUdid: "...", deviceType: "iPhone 16 Pro", message: "..." }
 
 // 3. Monitor build progress (poll every few seconds)
 flutter_logs({

@@ -4,8 +4,10 @@ import { getServerBaseUrl } from '../config.js';
 import {
   sessionStartSchema,
   sessionEndSchema,
+  startSimulatorSchema,
   handleSessionStart,
   handleSessionEnd,
+  handleStartSimulator,
   handleSessionList,
 } from './session.js';
 import { handleSimulatorList } from './simulator.js';
@@ -55,7 +57,7 @@ export function registerTools(mcpServer: McpServer): void {
       {
         name: 'session_start',
         description:
-          'Start a new Flutter development session. Creates and boots an iOS simulator, associates it with your Flutter project directory. This is always the first step - you must create a session before running Flutter or interacting with the simulator. Returns session ID (use this for all subsequent operations) and simulator UDID.',
+          'Start a new Flutter development session. Associates your Flutter project directory with a session. Returns session ID (use this for all subsequent operations). Note: This does NOT start a simulator - the simulator will be started automatically when you call flutter_run, or you can explicitly start it with start_simulator.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -70,6 +72,21 @@ export function registerTools(mcpServer: McpServer): void {
             },
           },
           required: ['worktreePath'],
+        },
+      },
+      {
+        name: 'start_simulator',
+        description:
+          'Start an iOS simulator for an existing session. Creates and boots a new simulator. This is automatically called by flutter_run if no simulator exists, so you typically only need to call this explicitly if you want to start the simulator before running Flutter.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sessionId: {
+              type: 'string',
+              description: 'Session ID from session_start',
+            },
+          },
+          required: ['sessionId'],
         },
       },
       {
@@ -458,6 +475,14 @@ export function registerTools(mcpServer: McpServer): void {
         case 'session_start': {
           const parsed = sessionStartSchema.parse(args);
           const result = await handleSessionStart(parsed);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case 'start_simulator': {
+          const parsed = startSimulatorSchema.parse(args);
+          const result = await handleStartSimulator(parsed);
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };

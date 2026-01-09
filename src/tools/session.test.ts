@@ -27,7 +27,7 @@ describe('Session Tools', () => {
       mockCreateSession.mockResolvedValue({
         id: 'session-123',
         worktreePath: '/path/to/worktree',
-        simulatorUdid: 'UDID-123',
+        // No simulatorUdid - lazy initialization
         deviceType: 'iPhone 16 Pro',
         createdAt: '2025-01-01T00:00:00.000Z',
       });
@@ -44,7 +44,6 @@ describe('Session Tools', () => {
       expect(result).toEqual({
         sessionId: 'session-123',
         worktreePath: '/path/to/worktree',
-        simulatorUdid: 'UDID-123',
         deviceType: 'iPhone 16 Pro',
       });
     });
@@ -53,7 +52,7 @@ describe('Session Tools', () => {
       mockCreateSession.mockResolvedValue({
         id: 'session-123',
         worktreePath: '/path/to/worktree',
-        simulatorUdid: 'UDID-123',
+        // No simulatorUdid - lazy initialization
         deviceType: 'iPhone 15',
         createdAt: '2025-01-01T00:00:00.000Z',
       });

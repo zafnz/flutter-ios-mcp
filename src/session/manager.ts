@@ -180,17 +180,10 @@ export class SessionManager {
 
     const sessionId = uuidv4();
 
-    const simulatorUdid = await createSimulator(deviceType);
-    logger.debug('Simulator created', { simulatorUdid });
-
-    await bootSimulator(simulatorUdid);
-    logger.debug('Simulator booted', { simulatorUdid });
-
     const now = new Date();
     const session: Session = {
       id: sessionId,
       worktreePath: resolvedPath,  // Store the fully resolved path
-      simulatorUdid,
       deviceType,
       createdAt: now,
       lastActivityAt: now,
@@ -198,14 +191,46 @@ export class SessionManager {
 
     sessionState.set(sessionId, session);
 
-    logger.info('Session created', { sessionId, simulatorUdid, resolvedPath });
+    logger.info('Session created', { sessionId, resolvedPath });
 
     return {
       id: session.id,
       worktreePath: session.worktreePath,
-      simulatorUdid: session.simulatorUdid,
       deviceType: session.deviceType,
       createdAt: session.createdAt.toISOString(),
+    };
+  }
+
+  async startSimulator(sessionId: string): Promise<{ simulatorUdid: string; deviceType: string }> {
+    logger.info('Starting simulator for session', { sessionId });
+
+    const session = sessionState.get(sessionId);
+    if (!session) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+
+    if (session.simulatorUdid) {
+      logger.debug('Simulator already exists', { simulatorUdid: session.simulatorUdid });
+      return {
+        simulatorUdid: session.simulatorUdid,
+        deviceType: session.deviceType,
+      };
+    }
+
+    const simulatorUdid = await createSimulator(session.deviceType);
+    logger.debug('Simulator created', { simulatorUdid });
+
+    await bootSimulator(simulatorUdid);
+    logger.debug('Simulator booted', { simulatorUdid });
+
+    session.simulatorUdid = simulatorUdid;
+    session.lastActivityAt = new Date();
+
+    logger.info('Simulator started', { sessionId, simulatorUdid });
+
+    return {
+      simulatorUdid,
+      deviceType: session.deviceType,
     };
   }
 
@@ -229,24 +254,26 @@ export class SessionManager {
       }
     }
 
-    try {
-      await shutdownSimulator(session.simulatorUdid);
-      logger.debug('Simulator shutdown', { simulatorUdid: session.simulatorUdid });
-    } catch (error) {
-      logger.warn('Failed to shutdown simulator', {
-        simulatorUdid: session.simulatorUdid,
-        error: String(error),
-      });
-    }
+    if (session.simulatorUdid) {
+      try {
+        await shutdownSimulator(session.simulatorUdid);
+        logger.debug('Simulator shutdown', { simulatorUdid: session.simulatorUdid });
+      } catch (error) {
+        logger.warn('Failed to shutdown simulator', {
+          simulatorUdid: session.simulatorUdid,
+          error: String(error),
+        });
+      }
 
-    try {
-      await deleteSimulator(session.simulatorUdid);
-      logger.debug('Simulator deleted', { simulatorUdid: session.simulatorUdid });
-    } catch (error) {
-      logger.warn('Failed to delete simulator', {
-        simulatorUdid: session.simulatorUdid,
-        error: String(error),
-      });
+      try {
+        await deleteSimulator(session.simulatorUdid);
+        logger.debug('Simulator deleted', { simulatorUdid: session.simulatorUdid });
+      } catch (error) {
+        logger.warn('Failed to delete simulator', {
+          simulatorUdid: session.simulatorUdid,
+          error: String(error),
+        });
+      }
     }
 
     sessionState.delete(sessionId);

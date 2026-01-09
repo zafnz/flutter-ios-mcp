@@ -4,7 +4,7 @@ import { FlutterTestManager } from '../flutter/test-manager.js';
 export interface Session {
   id: string;
   worktreePath: string;
-  simulatorUdid: string;
+  simulatorUdid?: string;
   deviceType: string;
   createdAt: Date;
   lastActivityAt: Date;
@@ -20,7 +20,7 @@ export interface CreateSessionParams {
 export interface SessionInfo {
   id: string;
   worktreePath: string;
-  simulatorUdid: string;
+  simulatorUdid?: string;
   deviceType: string;
   createdAt: string;
   flutterProcess?: {

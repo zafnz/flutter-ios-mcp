@@ -96,9 +96,9 @@ describe('SessionManager Security', () => {
       });
 
       expect(result.worktreePath).toBe(validFlutterProject);
-      expect(result.simulatorUdid).toBe('TEST-UDID-123');
-      expect(mockCreateSimulator).toHaveBeenCalled();
-      expect(mockBootSimulator).toHaveBeenCalledWith('TEST-UDID-123');
+      expect(result.simulatorUdid).toBeUndefined(); // Lazy initialization - simulator not created yet
+      expect(mockCreateSimulator).not.toHaveBeenCalled(); // Simulator creation deferred
+      expect(mockBootSimulator).not.toHaveBeenCalled(); // Simulator boot deferred
     });
   });
 
@@ -196,7 +196,7 @@ describe('SessionManager Security', () => {
       });
 
       expect(result.worktreePath).toBe(projectA);
-      expect(result.simulatorUdid).toBe('TEST-UDID-123');
+      expect(result.simulatorUdid).toBeUndefined(); // Lazy initialization - simulator not created yet
     });
 
     it('should resolve paths without leading slash when basePath is configured', async () => {
