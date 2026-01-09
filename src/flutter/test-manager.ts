@@ -12,10 +12,13 @@ import {
   DoneEvent,
 } from './test-types.js';
 
+// Global counter for unique test references across all sessions
+// This prevents reference collisions when multiple sessions have testManagers
+let globalNextReference = 1;
+
 export class FlutterTestManager {
   private process?: SpawnedProcess;
   private testStates: Map<number, FlutterTestState> = new Map();
-  private nextReference = 1;
 
   start(options: FlutterTestOptions): number {
     logger.info('Starting Flutter test', {
@@ -25,7 +28,7 @@ export class FlutterTestManager {
       timeout: options.timeout,
     });
 
-    const reference = this.nextReference++;
+    const reference = globalNextReference++;
     const state: FlutterTestState = {
       reference,
       startedAt: new Date(),
