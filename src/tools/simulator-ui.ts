@@ -231,7 +231,7 @@ export async function handleScreenshot(
   // Save screenshot to disk
   const screenshotsDir = getScreenshotsDir();
   const timestamp = Date.now();
-  const filename = `${args.sessionId}-${String(timestamp)}.png`;
+  const filename = `${args.sessionId}-${String(timestamp)}.${result.format}`;
   const filepath = join(screenshotsDir, filename);
 
   // Convert base64 to buffer and write to file

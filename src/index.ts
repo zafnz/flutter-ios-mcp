@@ -216,8 +216,8 @@ async function main(): Promise<void> {
   app.get('/screenshot/:filename', (req, res) => {
     const { filename } = req.params;
 
-    // Security: only allow alphanumeric, hyphens, and .png extension
-    if (!/^[a-zA-Z0-9-]+\.png$/.test(filename)) {
+    // Security: only allow alphanumeric, hyphens, and image extensions (.png, .jpg, .jpeg)
+    if (!/^[a-zA-Z0-9-]+\.(png|jpe?g)$/.test(filename)) {
       logger.warn('Invalid screenshot filename requested', { filename });
       res.status(400).json({ error: 'Invalid filename' });
       return;

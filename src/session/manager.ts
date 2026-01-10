@@ -10,14 +10,15 @@ export class SessionManager {
   private allowedPathPrefix: string;
   private basePath?: string;
   private maxSessions: number;
-  private sessionTimeoutMinutes?: number;
+  private sessionTimeoutMinutes: number;
   private timeoutCheckIntervalId?: NodeJS.Timeout;
   private preBuildScript?: string;
   private postBuildScript?: string;
 
-  constructor(allowedPathPrefix = '/Users/', maxSessions = 10) {
+  constructor(allowedPathPrefix = '/Users/', maxSessions = 10, sessionTimeoutMinutes = 30) {
     this.allowedPathPrefix = allowedPathPrefix;
     this.maxSessions = maxSessions;
+    this.sessionTimeoutMinutes = sessionTimeoutMinutes;
   }
 
   /**
@@ -52,13 +53,14 @@ export class SessionManager {
     }
     if (sessionTimeoutMinutes !== undefined) {
       this.sessionTimeoutMinutes = sessionTimeoutMinutes;
-      this.startTimeoutMonitoring();
     }
+    // Always start timeout monitoring (uses default of 30 minutes if not specified)
+    this.startTimeoutMonitoring();
     logger.info('SessionManager configured', {
       allowedPathPrefix,
       basePath: basePath || 'none',
       maxSessions: this.maxSessions,
-      sessionTimeout: sessionTimeoutMinutes ? `${String(sessionTimeoutMinutes)} minutes` : 'none',
+      sessionTimeout: `${String(this.sessionTimeoutMinutes)} minutes`,
       preBuildScript: preBuildScript || 'none',
       postBuildScript: postBuildScript || 'none',
     });
@@ -350,10 +352,6 @@ export class SessionManager {
       clearInterval(this.timeoutCheckIntervalId);
     }
 
-    if (!this.sessionTimeoutMinutes) {
-      return;
-    }
-
     logger.info('Starting session timeout monitoring', {
       timeoutMinutes: this.sessionTimeoutMinutes,
       checkInterval: '60 seconds',
@@ -371,10 +369,6 @@ export class SessionManager {
    * Check for inactive sessions and clean them up if they've exceeded the timeout.
    */
   private async checkAndCleanupInactiveSessions(): Promise<void> {
-    if (!this.sessionTimeoutMinutes) {
-      return;
-    }
-
     const now = new Date();
     const timeoutMs = this.sessionTimeoutMinutes * 60 * 1000;
     const sessions = sessionState.list();

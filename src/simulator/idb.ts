@@ -151,6 +151,7 @@ export async function describePoint(udid: string, x: number, y: number): Promise
 
 /**
  * Take a screenshot and save to file
+ * Automatically downscales to 50% and converts to JPEG for smaller file size
  */
 export async function screenshot(udid: string): Promise<ScreenshotResult> {
   logger.debug('IDB screenshot', { udid });
@@ -158,6 +159,7 @@ export async function screenshot(udid: string): Promise<ScreenshotResult> {
   // Create temp file for screenshot
   const tempDir = mkdtempSync(join(tmpdir(), 'mcp-screenshot-'));
   const tempPath = join(tempDir, 'screenshot.png');
+  const outputPath = join(tempDir, 'screenshot.jpg');
 
   try {
     const { exitCode, stderr } = await execFile(
@@ -173,20 +175,54 @@ export async function screenshot(udid: string): Promise<ScreenshotResult> {
       );
     }
 
-    // Read screenshot and encode as base64
-    const imageBuffer = readFileSync(tempPath);
+    // Get original image dimensions using sips
+    const { stdout: sipsInfo } = await execFile(
+      'sips',
+      ['-g', 'pixelWidth', '-g', 'pixelHeight', tempPath],
+      { timeout: 10000 }
+    );
+
+    // Parse dimensions from sips output
+    const widthMatch = sipsInfo.match(/pixelWidth:\s*(\d+)/);
+    const heightMatch = sipsInfo.match(/pixelHeight:\s*(\d+)/);
+    const originalWidth = widthMatch ? parseInt(widthMatch[1], 10) : 0;
+    const originalHeight = heightMatch ? parseInt(heightMatch[1], 10) : 0;
+
+    // Calculate 50% dimensions
+    const newWidth = Math.round(originalWidth * 0.5);
+    const newHeight = Math.round(originalHeight * 0.5);
+
+    // Resize to 50% using sips
+    if (newWidth > 0 && newHeight > 0) {
+      await execFile(
+        'sips',
+        ['-z', String(newHeight), String(newWidth), tempPath],
+        { timeout: 10000 }
+      );
+    }
+
+    // Convert to JPEG with reduced quality (60%)
+    await execFile(
+      'sips',
+      ['-s', 'format', 'jpeg', '-s', 'formatOptions', '60', tempPath, '--out', outputPath],
+      { timeout: 10000 }
+    );
+
+    // Read the processed screenshot and encode as base64
+    const imageBuffer = readFileSync(outputPath);
     const imageData = imageBuffer.toString('base64');
 
-    logger.info('Screenshot captured', {
+    logger.info('Screenshot captured and processed', {
       udid,
-      tempPath,
+      originalSize: `${String(originalWidth)}x${String(originalHeight)}`,
+      newSize: `${String(newWidth)}x${String(newHeight)}`,
       sizeBytes: imageBuffer.length
     });
 
     return {
-      path: tempPath,
+      path: outputPath,
       imageData,
-      format: 'png'
+      format: 'jpeg'
     };
   } finally {
     // Clean up temp directory
