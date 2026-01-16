@@ -478,7 +478,7 @@ export function registerTools(mcpServer: McpServer): void {
       switch (name) {
         case 'session_start': {
           const parsed = sessionStartSchema.parse(args);
-          const result = await handleSessionStart(parsed);
+          const result = handleSessionStart(parsed);
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };

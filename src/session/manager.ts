@@ -53,9 +53,9 @@ export class SessionManager {
     }
     if (sessionTimeoutMinutes !== undefined) {
       this.sessionTimeoutMinutes = sessionTimeoutMinutes;
+      // Only start timeout monitoring if explicitly configured
+      this.startTimeoutMonitoring();
     }
-    // Always start timeout monitoring (uses default of 30 minutes if not specified)
-    this.startTimeoutMonitoring();
     logger.info('SessionManager configured', {
       allowedPathPrefix,
       basePath: basePath || 'none',
@@ -131,7 +131,7 @@ export class SessionManager {
    * });
    * // Returns: { id: 'uuid...', worktreePath: '...', simulatorUdid: '...', deviceType: '...' }
    */
-  async createSession(params: CreateSessionParams): Promise<SessionInfo> {
+  createSession(params: CreateSessionParams): SessionInfo {
     const { worktreePath, deviceType = 'iPhone 16 Pro' } = params;
 
     logger.info('Creating session', { worktreePath, deviceType, basePath: this.basePath });

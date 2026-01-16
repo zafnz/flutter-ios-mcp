@@ -82,9 +82,11 @@ export async function handleFlutterRun(
   }
 
   // Ensure simulator is started
-  if (!session.simulatorUdid) {
+  let simulatorUdid = session.simulatorUdid;
+  if (!simulatorUdid) {
     logger.info('No simulator found, starting one automatically');
-    await sessionManager.startSimulator(args.sessionId);
+    const result = await sessionManager.startSimulator(args.sessionId);
+    simulatorUdid = result.simulatorUdid;
   }
 
   // Execute pre-build script if configured
@@ -98,7 +100,7 @@ export async function handleFlutterRun(
 
   const flutterProcess = await processManager.start({
     worktreePath: session.worktreePath,
-    deviceId: session.simulatorUdid!,  // Safe to use ! here since we ensured it exists above
+    deviceId: simulatorUdid,
     target: args.target,
     flavor: args.flavor,
     additionalArgs: args.additionalArgs,

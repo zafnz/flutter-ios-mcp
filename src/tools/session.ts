@@ -18,16 +18,16 @@ export const startSimulatorSchema = z.object({
   sessionId: z.string().describe('Session ID'),
 });
 
-export async function handleSessionStart(
+export function handleSessionStart(
   args: z.infer<typeof sessionStartSchema>
-): Promise<{
+): {
   sessionId: string;
   deviceType: string;
   worktreePath: string;
-}> {
+} {
   logger.info('Tool: session_start', args);
 
-  const session = await sessionManager.createSession({
+  const session = sessionManager.createSession({
     worktreePath: args.worktreePath,
     deviceType: args.deviceType,
   });

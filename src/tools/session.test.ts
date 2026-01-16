@@ -1,7 +1,7 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import type { SessionInfo } from '../session/types.js';
 
-const mockCreateSession = jest.fn<() => Promise<SessionInfo>>();
+const mockCreateSession = jest.fn<() => SessionInfo>();
 const mockEndSession = jest.fn<() => Promise<void>>();
 const mockListSessions = jest.fn<() => SessionInfo[]>();
 
@@ -23,8 +23,8 @@ describe('Session Tools', () => {
   });
 
   describe('handleSessionStart', () => {
-    it('should create session with default device type', async () => {
-      mockCreateSession.mockResolvedValue({
+    it('should create session with default device type', () => {
+      mockCreateSession.mockReturnValue({
         id: 'session-123',
         worktreePath: '/path/to/worktree',
         // No simulatorUdid - lazy initialization
@@ -32,7 +32,7 @@ describe('Session Tools', () => {
         createdAt: '2025-01-01T00:00:00.000Z',
       });
 
-      const result = await handleSessionStart({
+      const result = handleSessionStart({
         worktreePath: '/path/to/worktree',
       });
 
@@ -48,8 +48,8 @@ describe('Session Tools', () => {
       });
     });
 
-    it('should create session with custom device type', async () => {
-      mockCreateSession.mockResolvedValue({
+    it('should create session with custom device type', () => {
+      mockCreateSession.mockReturnValue({
         id: 'session-123',
         worktreePath: '/path/to/worktree',
         // No simulatorUdid - lazy initialization
@@ -57,7 +57,7 @@ describe('Session Tools', () => {
         createdAt: '2025-01-01T00:00:00.000Z',
       });
 
-      const result = await handleSessionStart({
+      const result = handleSessionStart({
         worktreePath: '/path/to/worktree',
         deviceType: 'iPhone 15',
       });
